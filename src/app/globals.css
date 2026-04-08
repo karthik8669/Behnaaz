@@ -1,0 +1,82 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --rose: #c8847a;
+  --rose-light: #f5eae8;
+  --gold: #b8965a;
+  --dark: #1c1410;
+  --cream: #faf7f4;
+  --background: var(--cream);
+  --foreground: var(--dark);
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+}
+
+body {
+  color: var(--foreground);
+  background: var(--background);
+  font-family: var(--font-jost), "Segoe UI", sans-serif;
+}
+
+@keyframes marquee-scroll {
+  0% {
+    transform: translateX(0);
+  }
+  100% {
+    transform: translateX(-50%);
+  }
+}
+
+.marquee-track {
+  display: flex;
+  width: max-content;
+  animation: marquee-scroll 28s linear infinite;
+}
+
+.marquee-wrap:hover .marquee-track {
+  animation-play-state: paused;
+}
+
+@keyframes hero-card-reveal {
+  0% {
+    opacity: 0;
+    transform: translateY(22px);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.hero-card-reveal {
+  opacity: 0;
+  animation: hero-card-reveal 780ms cubic-bezier(0.22, 1, 0.36, 1) forwards;
+}
+
+.hero-soft-pattern {
+  background-image:
+    radial-gradient(rgba(200, 132, 122, 0.7) 0.9px, transparent 0.9px),
+    linear-gradient(135deg, rgba(200, 132, 122, 0.35) 0.7px, transparent 0.7px);
+  background-size:
+    22px 22px,
+    30px 30px;
+  background-position:
+    0 0,
+    10px 10px;
+}
+
+@layer utilities {
+  .text-balance {
+    text-wrap: balance;
+  }
+}
