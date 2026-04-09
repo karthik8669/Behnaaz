@@ -2,6 +2,7 @@ import { Cormorant_Garamond, Jost } from "next/font/google";
 import "./globals.css";
 import Navbar from "../../components/Navbar";
 import Footer from "../../components/Footer";
+import TopAnnouncementBar from "../../components/TopAnnouncementBar";
 
 const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || "https://behnaaz.in";
 
@@ -59,6 +60,7 @@ export default function RootLayout({ children }) {
       <body
         className={`${cormorant.variable} ${jost.variable} flex min-h-screen flex-col antialiased`}
       >
+        <TopAnnouncementBar />
         <Navbar />
         <main className="flex-1">{children}</main>
         <Footer />

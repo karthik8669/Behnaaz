@@ -1,21 +1,16 @@
+"use client";
+
+import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
+import Image from "next/image";
+import { collection, onSnapshot, query, where } from "firebase/firestore";
+import { db } from "../lib/firebase";
 
 const PHONE_DISPLAY = "+91 861 927 9790";
 const PHONE_DIAL = "+918619279790";
 const WHATSAPP_LINK = "https://wa.me/918619279790";
 const INSTAGRAM_LINK =
   "https://www.instagram.com/the_behnaaz_store?igsh=cG1qeWt3ZG1td2t4";
-
-const COLLECTION_LINKS = [
-  { label: "Easy Wear Sets", href: "/products?category=Easy%20Wear%20Sets" },
-  { label: "Co-ord Sets", href: "/products?category=Co-ord%20Sets" },
-  { label: "Festive Wear", href: "/products?category=Festive%20Wear" },
-  {
-    label: "Wedding Collection",
-    href: "/products?category=Wedding%20Collection",
-  },
-  { label: "Office Wear", href: "/products?category=Office%20Wear" },
-];
 
 const QUICK_LINKS = [
   { label: "Home", href: "/#home" },
@@ -47,17 +42,72 @@ function WhatsAppIcon() {
 }
 
 export default function Footer() {
+  const [collectionLinks, setCollectionLinks] = useState([]);
+
+  useEffect(() => {
+    const productQuery = query(
+      collection(db, "products"),
+      where("in_stock", "==", true),
+    );
+
+    const unsubscribe = onSnapshot(
+      productQuery,
+      (snapshot) => {
+        const categories = Array.from(
+          new Set(
+            snapshot.docs
+              .map((doc) => {
+                const data = doc.data();
+                const rawCategory = data.category || data.collection;
+
+                if (typeof rawCategory !== "string") {
+                  return "";
+                }
+
+                return rawCategory.trim();
+              })
+              .filter(Boolean),
+          ),
+        )
+          .sort((a, b) => a.localeCompare(b))
+          .map((category) => ({
+            label: category,
+            href: `/products?category=${encodeURIComponent(category)}`,
+          }));
+
+        setCollectionLinks(categories);
+      },
+      () => setCollectionLinks([]),
+    );
+
+    return () => unsubscribe();
+  }, []);
+
+  const visibleCollectionLinks = useMemo(() => {
+    if (collectionLinks.length) {
+      return collectionLinks;
+    }
+
+    return [{ label: "All Products", href: "/products" }];
+  }, [collectionLinks]);
+
   return (
-    <footer className="bg-[#141010] text-[#f4e8e0]">
+    <footer className="motion-enter bg-[#141010] text-[#f4e8e0]">
       <div className="mx-auto max-w-7xl px-4 py-14 sm:px-6 lg:px-8">
         <div className="grid gap-10 sm:grid-cols-2 lg:grid-cols-4">
           <div>
             <Link
-              href="/#home"
+              href="/"
               aria-label="Behnaaz home"
-              className="inline-block text-4xl text-[#f8eee8] [font-family:var(--font-cormorant)]"
+              className="motion-button inline-flex items-center"
             >
-              Behn<span className="text-[#c8847a]">aa</span>z
+              <Image
+                src="/logo.png"
+                alt="Behnaaz"
+                width={100}
+                height={40}
+                style={{ objectFit: "contain" }}
+              />
             </Link>
             <p className="mt-3 max-w-xs text-sm leading-relaxed text-[#d6c2b8]">
               Elegant kurti collections crafted for every day, every
@@ -70,7 +120,7 @@ export default function Footer() {
                 target="_blank"
                 rel="noopener noreferrer"
                 aria-label="Visit Behnaaz on Instagram"
-                className="inline-flex h-9 w-9 items-center justify-center rounded-full border border-[#b8965a]/40 text-[#f4e8e0] transition hover:border-[#c8847a] hover:text-[#c8847a]"
+                className="motion-icon-pop inline-flex h-9 w-9 items-center justify-center rounded-full border border-[#b8965a]/40 text-[#f4e8e0] transition hover:border-[#c8847a] hover:text-[#c8847a]"
               >
                 <InstagramIcon />
               </a>
@@ -79,7 +129,7 @@ export default function Footer() {
                 target="_blank"
                 rel="noopener noreferrer"
                 aria-label="Chat with Behnaaz on WhatsApp"
-                className="inline-flex h-9 w-9 items-center justify-center rounded-full border border-[#b8965a]/40 text-[#f4e8e0] transition hover:border-[#c8847a] hover:text-[#c8847a]"
+                className="motion-icon-pop inline-flex h-9 w-9 items-center justify-center rounded-full border border-[#b8965a]/40 text-[#f4e8e0] transition hover:border-[#c8847a] hover:text-[#c8847a]"
               >
                 <WhatsAppIcon />
               </a>
@@ -91,11 +141,15 @@ export default function Footer() {
               Collections
             </h3>
             <ul className="mt-4 space-y-2 text-sm text-[#d6c2b8]">
-              {COLLECTION_LINKS.map((item) => (
-                <li key={item.label}>
+              {visibleCollectionLinks.map((item, index) => (
+                <li
+                  key={item.label}
+                  className="motion-enter"
+                  style={{ animationDelay: `${index * 70}ms` }}
+                >
                   <Link
                     href={item.href}
-                    className="transition hover:text-[#c8847a]"
+                    className="motion-underline-link transition hover:text-[#c8847a]"
                   >
                     {item.label}
                   </Link>
@@ -109,11 +163,15 @@ export default function Footer() {
               Quick Links
             </h3>
             <ul className="mt-4 space-y-2 text-sm text-[#d6c2b8]">
-              {QUICK_LINKS.map((item) => (
-                <li key={item.label}>
+              {QUICK_LINKS.map((item, index) => (
+                <li
+                  key={item.label}
+                  className="motion-enter"
+                  style={{ animationDelay: `${index * 70}ms` }}
+                >
                   <Link
                     href={item.href}
-                    className="transition hover:text-[#c8847a]"
+                    className="motion-underline-link transition hover:text-[#c8847a]"
                   >
                     {item.label}
                   </Link>
@@ -130,7 +188,7 @@ export default function Footer() {
               <li>
                 <a
                   href={`tel:${PHONE_DIAL}`}
-                  className="transition hover:text-[#c8847a]"
+                  className="motion-underline-link transition hover:text-[#c8847a]"
                 >
                   {PHONE_DISPLAY}
                 </a>
@@ -140,7 +198,7 @@ export default function Footer() {
                   href={WHATSAPP_LINK}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="transition hover:text-[#c8847a]"
+                  className="motion-underline-link transition hover:text-[#c8847a]"
                 >
                   WhatsApp Chat
                 </a>
@@ -150,7 +208,7 @@ export default function Footer() {
                   href={INSTAGRAM_LINK}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="transition hover:text-[#c8847a]"
+                  className="motion-underline-link transition hover:text-[#c8847a]"
                 >
                   @the_behnaaz_store
                 </a>

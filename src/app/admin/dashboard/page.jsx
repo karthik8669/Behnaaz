@@ -1,25 +1,76 @@
 "use client";
-import { useState, useEffect } from "react";
+
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { db, storage } from "@/lib/firebase";
 import {
-  collection,
   addDoc,
-  getDocs,
+  collection,
   deleteDoc,
   doc,
-  updateDoc,
+  getDocs,
   serverTimestamp,
+  updateDoc,
 } from "firebase/firestore";
-import { ref, uploadBytesResumable, getDownloadURL } from "firebase/storage";
+import { getDownloadURL, ref, uploadBytesResumable } from "firebase/storage";
+
+const FIREBASE_TIMEOUT_MS = 12000;
+
+function withTimeout(promise, timeoutMs = FIREBASE_TIMEOUT_MS) {
+  return new Promise((resolve, reject) => {
+    const timer = setTimeout(() => {
+      reject(new Error("Firebase connection timed out."));
+    }, timeoutMs);
+
+    promise
+      .then((value) => {
+        clearTimeout(timer);
+        resolve(value);
+      })
+      .catch((error) => {
+        clearTimeout(timer);
+        reject(error);
+      });
+  });
+}
+
+const SIZES = ["S", "M", "L", "XL", "XXL", "Free Size"];
+const CATS = [
+  "Easy Wear Sets",
+  "Chic Co-ord and Sets",
+  "Style in Comfort",
+  "Festive / Wedding Wear",
+  "Best Sellers",
+  "Printed Kurtis",
+  "Embroidered Kurtis",
+  "Office Wear",
+  "Casual Daily Wear",
+  "Kurta Palazzo Sets",
+  "Sharara Sets",
+  "Sale / Discounts",
+];
+
+const EMPTY_EDIT_FORM = {
+  name: "",
+  price: "",
+  category: CATS[0],
+  description: "",
+  sizes: [],
+  in_stock: true,
+  image_url: "",
+};
 
 export default function Dashboard() {
   const router = useRouter();
+
   const [products, setProducts] = useState([]);
+  const [loadingProducts, setLoadingProducts] = useState(true);
+  const [productsError, setProductsError] = useState("");
+
   const [form, setForm] = useState({
     name: "",
     price: "",
-    category: "Easy Wear Sets",
+    category: CATS[0],
     description: "",
     sizes: [],
     in_stock: true,
@@ -30,32 +81,127 @@ export default function Dashboard() {
   const [saving, setSaving] = useState(false);
   const [success, setSuccess] = useState(false);
 
+  const [editingId, setEditingId] = useState("");
+  const [editForm, setEditForm] = useState(EMPTY_EDIT_FORM);
+  const [editPhoto, setEditPhoto] = useState(null);
+  const [editPhotoPreview, setEditPhotoPreview] = useState("");
+  const [editSaving, setEditSaving] = useState(false);
+  const [editProgress, setEditProgress] = useState(0);
+  const [editSuccessId, setEditSuccessId] = useState("");
+
   useEffect(() => {
     if (sessionStorage.getItem("admin") !== "true") {
       router.push("/admin");
+      return;
     }
+
     fetchProducts();
   }, []);
 
   async function fetchProducts() {
-    const snap = await getDocs(collection(db, "products"));
-    setProducts(snap.docs.map((d) => ({ id: d.id, ...d.data() })));
+    setLoadingProducts(true);
+    setProductsError("");
+
+    try {
+      const snap = await withTimeout(getDocs(collection(db, "products")));
+      setProducts(snap.docs.map((item) => ({ id: item.id, ...item.data() })));
+    } catch (error) {
+      console.error("Firebase error:", error);
+      setProducts([]);
+      setProductsError("Unable to load products. Check connection.");
+    } finally {
+      setLoadingProducts(false);
+    }
+  }
+
+  async function uploadImageFile(file, onProgress) {
+    return new Promise((resolve, reject) => {
+      const storageRef = ref(storage, `products/${Date.now()}_${file.name}`);
+      const uploadTask = uploadBytesResumable(storageRef, file);
+
+      uploadTask.on(
+        "state_changed",
+        (snap) => {
+          const percent = Math.round(
+            (snap.bytesTransferred / snap.totalBytes) * 100,
+          );
+          onProgress(percent);
+        },
+        (error) => reject(error),
+        async () => {
+          const url = await getDownloadURL(uploadTask.snapshot.ref);
+          resolve(url);
+        },
+      );
+    });
   }
 
   function handlePhoto(e) {
     const file = e.target.files[0];
     if (!file) return;
+
     setPhoto(file);
     setPreview(URL.createObjectURL(file));
   }
 
+  function handleEditPhoto(e) {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    setEditPhoto(file);
+    setEditPhotoPreview(URL.createObjectURL(file));
+  }
+
   function toggleSize(size) {
-    setForm((f) => ({
-      ...f,
-      sizes: f.sizes.includes(size)
-        ? f.sizes.filter((s) => s !== size)
-        : [...f.sizes, size],
+    setForm((current) => ({
+      ...current,
+      sizes: current.sizes.includes(size)
+        ? current.sizes.filter((item) => item !== size)
+        : [...current.sizes, size],
     }));
+  }
+
+  function toggleEditSize(size) {
+    setEditForm((current) => ({
+      ...current,
+      sizes: current.sizes.includes(size)
+        ? current.sizes.filter((item) => item !== size)
+        : [...current.sizes, size],
+    }));
+  }
+
+  function startEdit(product) {
+    setEditingId(product.id);
+    setEditSuccessId("");
+    setEditPhoto(null);
+    setEditPhotoPreview("");
+    setEditProgress(0);
+
+    setEditForm({
+      name: product.name || "",
+      price:
+        product.price === undefined || product.price === null
+          ? ""
+          : String(product.price),
+      category:
+        typeof product.category === "string" && CATS.includes(product.category)
+          ? product.category
+          : CATS[0],
+      description: product.description || "",
+      sizes: Array.isArray(product.sizes) ? product.sizes : [],
+      in_stock:
+        product.in_stock === undefined ? true : Boolean(product.in_stock),
+      image_url: product.image_url || "",
+    });
+  }
+
+  function cancelEdit() {
+    setEditingId("");
+    setEditForm(EMPTY_EDIT_FORM);
+    setEditPhoto(null);
+    setEditPhotoPreview("");
+    setEditProgress(0);
+    setEditSaving(false);
   }
 
   async function handleSave() {
@@ -63,80 +209,104 @@ export default function Dashboard() {
       alert("Please fill name, price and add a photo");
       return;
     }
+
     setSaving(true);
+    setProgress(0);
+
     try {
-      const storageRef = ref(storage, `products/${Date.now()}_${photo.name}`);
-      const uploadTask = uploadBytesResumable(storageRef, photo);
-      uploadTask.on(
-        "state_changed",
-        (snap) =>
-          setProgress(
-            Math.round((snap.bytesTransferred / snap.totalBytes) * 100),
-          ),
-        (err) => {
-          alert(err.message);
-          setSaving(false);
-        },
-        async () => {
-          const url = await getDownloadURL(uploadTask.snapshot.ref);
-          await addDoc(collection(db, "products"), {
-            ...form,
-            price: Number(form.price),
-            image_url: url,
-            createdAt: serverTimestamp(),
-          });
-          setSuccess(true);
-          setForm({
-            name: "",
-            price: "",
-            category: "Easy Wear Sets",
-            description: "",
-            sizes: [],
-            in_stock: true,
-          });
-          setPhoto(null);
-          setPreview(null);
-          setProgress(0);
-          setSaving(false);
-          fetchProducts();
-          setTimeout(() => setSuccess(false), 3000);
-        },
-      );
-    } catch (e) {
-      alert(e.message);
+      const url = await uploadImageFile(photo, setProgress);
+
+      await addDoc(collection(db, "products"), {
+        ...form,
+        price: Number(form.price),
+        image_url: url,
+        createdAt: serverTimestamp(),
+      });
+
+      setSuccess(true);
+      setForm({
+        name: "",
+        price: "",
+        category: CATS[0],
+        description: "",
+        sizes: [],
+        in_stock: true,
+      });
+      setPhoto(null);
+      setPreview(null);
+      setProgress(0);
+      await fetchProducts();
+      setTimeout(() => setSuccess(false), 3000);
+    } catch (error) {
+      alert(error.message);
+    } finally {
       setSaving(false);
+    }
+  }
+
+  async function handleEditSave(productId) {
+    if (!editForm.name || editForm.price === "") {
+      alert("Please fill product name and price");
+      return;
+    }
+
+    setEditSaving(true);
+    setEditProgress(0);
+
+    try {
+      let newImageUrl = "";
+
+      if (editPhoto) {
+        newImageUrl = await uploadImageFile(editPhoto, setEditProgress);
+      }
+
+      await updateDoc(doc(db, "products", productId), {
+        name: editForm.name,
+        price: Number(editForm.price),
+        category: editForm.category,
+        description: editForm.description,
+        sizes: editForm.sizes,
+        in_stock: editForm.in_stock,
+        ...(newImageUrl && { image_url: newImageUrl }),
+      });
+
+      setEditSuccessId(productId);
+      setEditingId("");
+      setEditPhoto(null);
+      setEditPhotoPreview("");
+      setEditProgress(0);
+
+      await fetchProducts();
+      setTimeout(() => setEditSuccessId(""), 3000);
+    } catch (error) {
+      alert(error.message);
+    } finally {
+      setEditSaving(false);
     }
   }
 
   async function handleDelete(id) {
     if (!confirm("Delete this product?")) return;
     await deleteDoc(doc(db, "products", id));
-    fetchProducts();
+    await fetchProducts();
   }
 
   async function toggleStock(id, current) {
     await updateDoc(doc(db, "products", id), { in_stock: !current });
-    fetchProducts();
+    await fetchProducts();
   }
-
-  const SIZES = ["S", "M", "L", "XL", "XXL", "Free Size"];
-  const CATS = [
-    "Easy Wear Sets",
-    "Chic Co-ord and Sets",
-    "Style in Comfort",
-    "Festive Wedding Wear",
-    "Best Sellers",
-  ];
 
   return (
     <div style={{ minHeight: "100vh", background: "#FAF7F4", padding: "24px" }}>
-      <div style={{ maxWidth: "600px", margin: "0 auto" }}>
+      <div style={{ maxWidth: "760px", margin: "0 auto" }}>
         <div
           style={{
             display: "flex",
             justifyContent: "space-between",
             alignItems: "center",
             marginBottom: "32px",
+            gap: "12px",
+            flexWrap: "wrap",
           }}
         >
           <h1
@@ -149,6 +319,7 @@ export default function Dashboard() {
           >
             Admin Panel
           </h1>
+
           <button
             onClick={() => {
               sessionStorage.clear();
@@ -210,9 +381,11 @@ export default function Dashboard() {
               name="photo"
               autoComplete="off"
             />
+
             {preview ? (
               <img
                 src={preview}
+                alt="New product preview"
                 style={{
                   width: "100%",
                   maxHeight: "200px",
@@ -238,7 +411,7 @@ export default function Dashboard() {
               placeholder={field === "name" ? "Product Name" : "Price ₹"}
               value={form[field]}
               onChange={(e) =>
-                setForm((f) => ({ ...f, [field]: e.target.value }))
+                setForm((current) => ({ ...current, [field]: e.target.value }))
               }
               style={{
                 width: "100%",
@@ -259,7 +432,7 @@ export default function Dashboard() {
             autoComplete="off"
             value={form.category}
             onChange={(e) =>
-              setForm((f) => ({ ...f, category: e.target.value }))
+              setForm((current) => ({ ...current, category: e.target.value }))
             }
             style={{
               width: "100%",
@@ -272,9 +445,9 @@ export default function Dashboard() {
               fontFamily: "sans-serif",
             }}
           >
-            {CATS.map((c) => (
-              <option key={c} value={c}>
-                {c}
+            {CATS.map((category) => (
+              <option key={category} value={category}>
+                {category}
               </option>
             ))}
           </select>
@@ -291,22 +464,24 @@ export default function Dashboard() {
             >
               Sizes
             </p>
+
             <div style={{ display: "flex", gap: "8px", flexWrap: "wrap" }}>
-              {SIZES.map((s) => (
+              {SIZES.map((size) => (
                 <button
-                  key={s}
-                  onClick={() => toggleSize(s)}
+                  key={size}
+                  type="button"
+                  onClick={() => toggleSize(size)}
                   style={{
                     padding: "6px 14px",
                     fontSize: "12px",
                     border: "1px solid #EDE8E4",
                     borderRadius: "4px",
                     cursor: "pointer",
-                    background: form.sizes.includes(s) ? "#1C1410" : "#fff",
-                    color: form.sizes.includes(s) ? "#fff" : "#1C1410",
+                    background: form.sizes.includes(size) ? "#1C1410" : "#fff",
+                    color: form.sizes.includes(size) ? "#fff" : "#1C1410",
                   }}
                 >
-                  {s}
+                  {size}
                 </button>
               ))}
             </div>
@@ -319,7 +494,10 @@ export default function Dashboard() {
             placeholder="Product description..."
             value={form.description}
             onChange={(e) =>
-              setForm((f) => ({ ...f, description: e.target.value }))
+              setForm((current) => ({
+                ...current,
+                description: e.target.value,
+              }))
             }
             rows={3}
             style={{
@@ -413,89 +591,561 @@ export default function Dashboard() {
           >
             All Products ({products.length})
           </h2>
-          {products.map((p) => (
-            <div
-              key={p.id}
+
+          {productsError && (
+            <p
               style={{
-                background: "#fff",
-                border: "1px solid #EDE8E4",
-                borderRadius: "8px",
-                padding: "16px",
                 marginBottom: "12px",
-                display: "flex",
-                gap: "16px",
-                alignItems: "center",
+                border: "1px solid #F0C9C9",
+                borderRadius: "6px",
+                background: "#FFF1F1",
+                padding: "10px 12px",
+                fontSize: "13px",
+                color: "#8B3E4F",
               }}
             >
-              {p.image_url && (
-                <img
-                  src={p.image_url}
-                  style={{
-                    width: "64px",
-                    height: "64px",
-                    objectFit: "cover",
-                    borderRadius: "4px",
-                  }}
-                />
-              )}
-              <div style={{ flex: 1 }}>
-                <p
-                  style={{
-                    fontWeight: 500,
-                    fontSize: "14px",
-                    marginBottom: "2px",
-                  }}
-                >
-                  {p.name}
-                </p>
-                <p
-                  style={{
-                    color: "#B8965A",
-                    fontSize: "13px",
-                    marginBottom: "4px",
-                  }}
-                >
-                  ₹{p.price}
-                </p>
-                <p style={{ color: "#8C7670", fontSize: "11px" }}>
-                  {p.category}
-                </p>
-              </div>
+              {productsError}
+            </p>
+          )}
+
+          {loadingProducts && (
+            <p
+              style={{
+                marginBottom: "12px",
+                border: "1px solid #EDE8E4",
+                borderRadius: "6px",
+                background: "#FFFFFF",
+                padding: "10px 12px",
+                fontSize: "13px",
+                color: "#8C7670",
+              }}
+            >
+              Loading products...
+            </p>
+          )}
+
+          {!loadingProducts &&
+            products.map((product) => (
               <div
-                style={{ display: "flex", flexDirection: "column", gap: "8px" }}
+                key={product.id}
+                style={{
+                  background: "#fff",
+                  border: "1px solid #EDE8E4",
+                  borderRadius: "8px",
+                  padding: "16px",
+                  marginBottom: "12px",
+                  position: "relative",
+                  overflow: "hidden",
+                }}
               >
-                <button
-                  onClick={() => toggleStock(p.id, p.in_stock)}
+                {editingId === product.id && editSaving && (
+                  <div
+                    style={{
+                      position: "absolute",
+                      inset: 0,
+                      zIndex: 20,
+                      background: "rgba(255, 255, 255, 0.72)",
+                      backdropFilter: "blur(1px)",
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      flexDirection: "column",
+                      gap: "10px",
+                    }}
+                  >
+                    <div
+                      style={{
+                        width: "28px",
+                        height: "28px",
+                        borderRadius: "999px",
+                        border: "3px solid #E6DBD5",
+                        borderTopColor: "#C8847A",
+                        animation: "dashboardEditSpin 0.8s linear infinite",
+                      }}
+                    />
+                    <p
+                      style={{
+                        fontSize: "12px",
+                        fontWeight: 600,
+                        color: "#4B3C36",
+                        textTransform: "uppercase",
+                        letterSpacing: "1px",
+                      }}
+                    >
+                      Saving changes...
+                    </p>
+                  </div>
+                )}
+
+                <div
                   style={{
-                    padding: "6px 12px",
-                    fontSize: "11px",
-                    border: "1px solid #EDE8E4",
-                    borderRadius: "4px",
-                    cursor: "pointer",
-                    background: p.in_stock ? "#E8F5E9" : "#FFF3E0",
-                    color: p.in_stock ? "#2E7D32" : "#E65100",
+                    display: "flex",
+                    gap: "16px",
+                    alignItems: "center",
+                    flexWrap: "wrap",
                   }}
                 >
-                  {p.in_stock ? "✅ In Stock" : "❌ Out of Stock"}
-                </button>
-                <button
-                  onClick={() => handleDelete(p.id)}
-                  style={{
-                    padding: "6px 12px",
-                    fontSize: "11px",
-                    border: "1px solid #FFCDD2",
-                    borderRadius: "4px",
-                    cursor: "pointer",
-                    background: "#FFF5F5",
-                    color: "#C62828",
-                  }}
-                >
-                  🗑 Delete
-                </button>
+                  {product.image_url && (
+                    <img
+                      src={product.image_url}
+                      alt={product.name || "Product image"}
+                      style={{
+                        width: "64px",
+                        height: "64px",
+                        objectFit: "cover",
+                        borderRadius: "4px",
+                      }}
+                    />
+                  )}
+
+                  <div style={{ flex: "1 1 180px", minWidth: "180px" }}>
+                    <p
+                      style={{
+                        fontWeight: 500,
+                        fontSize: "14px",
+                        marginBottom: "2px",
+                      }}
+                    >
+                      {product.name}
+                    </p>
+                    <p
+                      style={{
+                        color: "#B8965A",
+                        fontSize: "13px",
+                        marginBottom: "4px",
+                      }}
+                    >
+                      ₹{product.price}
+                    </p>
+                    <p style={{ color: "#8C7670", fontSize: "11px" }}>
+                      {product.category}
+                    </p>
+                  </div>
+
+                  <div
+                    style={{
+                      display: "flex",
+                      flexWrap: "wrap",
+                      gap: "8px",
+                      marginLeft: "auto",
+                    }}
+                  >
+                    <button
+                      type="button"
+                      onClick={() => startEdit(product)}
+                      disabled={editSaving && editingId === product.id}
+                      style={{
+                        padding: "6px 12px",
+                        fontSize: "11px",
+                        border: "1px solid #EDE8E4",
+                        borderRadius: "4px",
+                        cursor:
+                          editSaving && editingId === product.id
+                            ? "not-allowed"
+                            : "pointer",
+                        background: "#F4F7FF",
+                        color: "#2E3A59",
+                        opacity:
+                          editSaving && editingId === product.id ? 0.65 : 1,
+                      }}
+                    >
+                      ✏️ Edit
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => toggleStock(product.id, product.in_stock)}
+                      disabled={editSaving && editingId === product.id}
+                      style={{
+                        padding: "6px 12px",
+                        fontSize: "11px",
+                        border: "1px solid #EDE8E4",
+                        borderRadius: "4px",
+                        cursor:
+                          editSaving && editingId === product.id
+                            ? "not-allowed"
+                            : "pointer",
+                        background: product.in_stock ? "#E8F5E9" : "#FFF3E0",
+                        color: product.in_stock ? "#2E7D32" : "#E65100",
+                        opacity:
+                          editSaving && editingId === product.id ? 0.65 : 1,
+                      }}
+                    >
+                      {product.in_stock ? "✅ In Stock" : "❌ Out of Stock"}
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => handleDelete(product.id)}
+                      disabled={editSaving && editingId === product.id}
+                      style={{
+                        padding: "6px 12px",
+                        fontSize: "11px",
+                        border: "1px solid #FFCDD2",
+                        borderRadius: "4px",
+                        cursor:
+                          editSaving && editingId === product.id
+                            ? "not-allowed"
+                            : "pointer",
+                        background: "#FFF5F5",
+                        color: "#C62828",
+                        opacity:
+                          editSaving && editingId === product.id ? 0.65 : 1,
+                      }}
+                    >
+                      🗑 Delete
+                    </button>
+                  </div>
+                </div>
+
+                {editSuccessId === product.id && (
+                  <p
+                    style={{
+                      color: "#2E7D32",
+                      fontSize: "13px",
+                      fontWeight: 600,
+                      marginTop: "10px",
+                    }}
+                  >
+                    Updated Successfully ✅
+                  </p>
+                )}
+
+                {editingId === product.id && (
+                  <div
+                    style={{
+                      marginTop: "14px",
+                      padding: "14px",
+                      border: "1px solid #F0E7E2",
+                      borderRadius: "8px",
+                      background: "#FFFCFA",
+                    }}
+                  >
+                    <h3
+                      style={{
+                        fontSize: "13px",
+                        textTransform: "uppercase",
+                        letterSpacing: "1px",
+                        marginBottom: "12px",
+                        color: "#4B3C36",
+                      }}
+                    >
+                      Edit Product
+                    </h3>
+
+                    <div
+                      style={{
+                        display: "grid",
+                        gridTemplateColumns:
+                          "repeat(auto-fit, minmax(220px, 1fr))",
+                        gap: "12px",
+                        marginBottom: "12px",
+                      }}
+                    >
+                      <input
+                        type="text"
+                        placeholder="Product Name"
+                        value={editForm.name}
+                        onChange={(e) =>
+                          setEditForm((current) => ({
+                            ...current,
+                            name: e.target.value,
+                          }))
+                        }
+                        style={{
+                          width: "100%",
+                          padding: "11px",
+                          border: "1px solid #EDE8E4",
+                          borderRadius: "4px",
+                          fontSize: "14px",
+                          outline: "none",
+                        }}
+                      />
+
+                      <input
+                        type="number"
+                        placeholder="Price ₹"
+                        value={editForm.price}
+                        onChange={(e) =>
+                          setEditForm((current) => ({
+                            ...current,
+                            price: e.target.value,
+                          }))
+                        }
+                        style={{
+                          width: "100%",
+                          padding: "11px",
+                          border: "1px solid #EDE8E4",
+                          borderRadius: "4px",
+                          fontSize: "14px",
+                          outline: "none",
+                        }}
+                      />
+                    </div>
+
+                    <select
+                      value={editForm.category}
+                      onChange={(e) =>
+                        setEditForm((current) => ({
+                          ...current,
+                          category: e.target.value,
+                        }))
+                      }
+                      style={{
+                        width: "100%",
+                        padding: "11px",
+                        border: "1px solid #EDE8E4",
+                        borderRadius: "4px",
+                        fontSize: "14px",
+                        marginBottom: "12px",
+                        outline: "none",
+                      }}
+                    >
+                      {CATS.map((category) => (
+                        <option key={category} value={category}>
+                          {category}
+                        </option>
+                      ))}
+                    </select>
+
+                    <textarea
+                      placeholder="Product description..."
+                      value={editForm.description}
+                      onChange={(e) =>
+                        setEditForm((current) => ({
+                          ...current,
+                          description: e.target.value,
+                        }))
+                      }
+                      rows={3}
+                      style={{
+                        width: "100%",
+                        padding: "11px",
+                        border: "1px solid #EDE8E4",
+                        borderRadius: "4px",
+                        fontSize: "14px",
+                        marginBottom: "12px",
+                        outline: "none",
+                        resize: "vertical",
+                      }}
+                    />
+
+                    <div style={{ marginBottom: "12px" }}>
+                      <p
+                        style={{
+                          fontSize: "12px",
+                          letterSpacing: "1px",
+                          textTransform: "uppercase",
+                          color: "#8C7670",
+                          marginBottom: "8px",
+                        }}
+                      >
+                        Sizes
+                      </p>
+
+                      <div
+                        style={{
+                          display: "grid",
+                          gridTemplateColumns:
+                            "repeat(auto-fit, minmax(90px, 1fr))",
+                          gap: "8px",
+                        }}
+                      >
+                        {SIZES.map((size) => (
+                          <label
+                            key={size}
+                            style={{
+                              display: "flex",
+                              alignItems: "center",
+                              gap: "6px",
+                              fontSize: "12px",
+                              color: "#3F342F",
+                              border: "1px solid #EDE8E4",
+                              borderRadius: "4px",
+                              padding: "8px",
+                              background: "#fff",
+                            }}
+                          >
+                            <input
+                              type="checkbox"
+                              checked={editForm.sizes.includes(size)}
+                              onChange={() => toggleEditSize(size)}
+                            />
+                            {size}
+                          </label>
+                        ))}
+                      </div>
+                    </div>
+
+                    <label
+                      style={{
+                        display: "inline-flex",
+                        alignItems: "center",
+                        gap: "8px",
+                        fontSize: "13px",
+                        marginBottom: "12px",
+                        color: "#3F342F",
+                      }}
+                    >
+                      <input
+                        type="checkbox"
+                        checked={editForm.in_stock}
+                        onChange={(e) =>
+                          setEditForm((current) => ({
+                            ...current,
+                            in_stock: e.target.checked,
+                          }))
+                        }
+                      />
+                      In Stock
+                    </label>
+
+                    <div style={{ marginBottom: "12px" }}>
+                      <p
+                        style={{
+                          fontSize: "12px",
+                          letterSpacing: "1px",
+                          textTransform: "uppercase",
+                          color: "#8C7670",
+                          marginBottom: "8px",
+                        }}
+                      >
+                        Product Photo
+                      </p>
+
+                      {editPhotoPreview || editForm.image_url ? (
+                        <img
+                          src={editPhotoPreview || editForm.image_url}
+                          alt={editForm.name || "Product image preview"}
+                          style={{
+                            width: "100%",
+                            maxWidth: "220px",
+                            maxHeight: "160px",
+                            objectFit: "cover",
+                            borderRadius: "6px",
+                            border: "1px solid #EDE8E4",
+                            marginBottom: "8px",
+                          }}
+                        />
+                      ) : (
+                        <p style={{ fontSize: "12px", color: "#8C7670" }}>
+                          No current photo
+                        </p>
+                      )}
+
+                      <label
+                        style={{
+                          display: "inline-block",
+                          padding: "8px 12px",
+                          border: "1px dashed #D8CBC3",
+                          borderRadius: "4px",
+                          fontSize: "12px",
+                          cursor: "pointer",
+                          background: "#fff",
+                        }}
+                      >
+                        Upload New Photo
+                        <input
+                          type="file"
+                          accept="image/*"
+                          capture="environment"
+                          onChange={handleEditPhoto}
+                          style={{ display: "none" }}
+                        />
+                      </label>
+                    </div>
+
+                    {editSaving && editPhoto && (
+                      <div style={{ marginBottom: "12px" }}>
+                        <div
+                          style={{
+                            background: "#EDE8E4",
+                            borderRadius: "4px",
+                            height: "6px",
+                          }}
+                        >
+                          <div
+                            style={{
+                              background: "#C8847A",
+                              height: "6px",
+                              borderRadius: "4px",
+                              width: `${editProgress}%`,
+                              transition: "width 0.3s",
+                            }}
+                          />
+                        </div>
+                        <p
+                          style={{
+                            fontSize: "12px",
+                            color: "#8C7670",
+                            marginTop: "4px",
+                            textAlign: "center",
+                          }}
+                        >
+                          {editProgress}% uploading new image...
+                        </p>
+                      </div>
+                    )}
+
+                    <div
+                      style={{ display: "flex", gap: "10px", flexWrap: "wrap" }}
+                    >
+                      <button
+                        type="button"
+                        onClick={() => handleEditSave(product.id)}
+                        disabled={editSaving}
+                        style={{
+                          flex: "1 1 160px",
+                          background: editSaving ? "#8C7670" : "#1C1410",
+                          color: "#fff",
+                          padding: "11px 14px",
+                          border: "none",
+                          borderRadius: "4px",
+                          fontSize: "12px",
+                          letterSpacing: "1px",
+                          textTransform: "uppercase",
+                          cursor: editSaving ? "not-allowed" : "pointer",
+                        }}
+                      >
+                        {editSaving ? "Saving..." : "Save Changes"}
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={cancelEdit}
+                        disabled={editSaving}
+                        style={{
+                          flex: "1 1 120px",
+                          background: "#fff",
+                          color: "#5A4B44",
+                          padding: "11px 14px",
+                          border: "1px solid #EDE8E4",
+                          borderRadius: "4px",
+                          fontSize: "12px",
+                          letterSpacing: "1px",
+                          textTransform: "uppercase",
+                          cursor: editSaving ? "not-allowed" : "pointer",
+                        }}
+                      >
+                        Cancel
+                      </button>
+                    </div>
+                  </div>
+                )}
               </div>
-            </div>
-          ))}
+            ))}
         </div>
+
+        <style>{`
+          @keyframes dashboardEditSpin {
+            from {
+              transform: rotate(0deg);
+            }
+            to {
+              transform: rotate(360deg);
+            }
+          }
+        `}</style>
       </div>
     </div>
   );

@@ -1,209 +1,289 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
+import { collection, getDocs, query, where } from "firebase/firestore";
+import ProductCard from "../../components/ProductCard";
+import { db } from "../../lib/firebase";
 
-const PHONE_DIAL = "+918619279790";
+const FIREBASE_TIMEOUT_MS = 12000;
 
-const CATEGORIES = [
-  {
-    name: "Easy Wear Sets",
+function withTimeout(promise, timeoutMs = FIREBASE_TIMEOUT_MS) {
+  return new Promise((resolve, reject) => {
+    const timer = setTimeout(() => {
+      reject(new Error("Firebase connection timed out."));
+    }, timeoutMs);
+
+    promise
+      .then((value) => {
+        clearTimeout(timer);
+        resolve(value);
+      })
+      .catch((error) => {
+        clearTimeout(timer);
+        reject(error);
+      });
+  });
+}
+
+const CATEGORY_THEMES = {
+  easyWear: {
     emoji: "🌸",
-    gradient: "from-[#f5eae8] to-[#f3d8d3]",
-    description: "Everyday comfort with effortless grace.",
+    gradient: "from-[#FFECE1] via-[#F9DFCF] to-[#F4CEB8]",
+    description: "Curated designs made for effortless everyday grace.",
   },
-  {
-    name: "Co-ord Sets",
+  chicCoord: {
     emoji: "✨",
-    gradient: "from-[#f9f1e4] to-[#f1dec0]",
-    description: "Perfectly paired looks for modern elegance.",
+    gradient: "from-[#F4ECFF] via-[#EADCFB] to-[#DCC6F1]",
+    description: "Contemporary looks with elegant, wearable silhouettes.",
   },
-  {
-    name: "Festive Wear",
-    emoji: "🎊",
-    gradient: "from-[#f2dde2] to-[#efd0d8]",
-    description: "Celebrate every event in statement silhouettes.",
-  },
-  {
-    name: "Wedding Collection",
-    emoji: "💫",
-    gradient: "from-[#efe8d8] to-[#e8d4ad]",
-    description: "Grand designs for cherished wedding moments.",
-  },
-  {
-    name: "Office Wear",
+  styleComfort: {
     emoji: "👜",
-    gradient: "from-[#efe7e2] to-[#e6d8cf]",
-    description: "Polished kurtis crafted for your workday rhythm.",
+    gradient: "from-[#EBF3E5] via-[#DCEAD2] to-[#CFE0C2]",
+    description: "Comfort-first edits that feel soft and look polished.",
   },
-];
+  festiveWedding: {
+    emoji: "🎊",
+    gradient: "from-[#FBF3DF] via-[#F1E0B8] to-[#E9CE94]",
+    description: "Statement picks for festive evenings and wedding moments.",
+  },
+  bestSellers: {
+    emoji: "💫",
+    gradient: "from-[#F9E4E8] via-[#F2D3DB] to-[#E9BCC8]",
+    description: "Most-loved best sellers chosen by our regular shoppers.",
+  },
+  default: {
+    emoji: "✦",
+    gradient: "from-[#F5EAE8] via-[#EFDDD8] to-[#E6D2CC]",
+    description: "Discover elegant pieces crafted with comfort and charm.",
+  },
+};
 
-const PRODUCTS = [
+const HERO_CARD_LAYOUTS = [
   {
-    id: 1,
-    name: "Noor Rose Kurti Set",
-    category: "Easy Wear Sets",
-    price: 1799,
-    subtitle: "Soft cotton blend with floral neckline",
-    emoji: "🌷",
-    tone: "from-[#f5eae8] to-[#efd4cf]",
-  },
-  {
-    id: 2,
-    name: "Zoya Co-ord Charm",
-    category: "Co-ord Sets",
-    price: 2299,
-    subtitle: "Smart silhouette with delicate detailing",
-    emoji: "✨",
-    tone: "from-[#f7efd9] to-[#ecd7ae]",
-  },
-  {
-    id: 3,
-    name: "Mehr Festive Aura",
-    category: "Festive Wear",
-    price: 2699,
-    subtitle: "Rich textures designed for celebration nights",
-    emoji: "🎉",
-    tone: "from-[#f3e2e7] to-[#eec9d2]",
-  },
-  {
-    id: 4,
-    name: "Sitara Wedding Edit",
-    category: "Wedding Collection",
-    price: 3499,
-    subtitle: "Premium drape and hand-finished highlights",
-    emoji: "👑",
-    tone: "from-[#efe6d6] to-[#e2cda4]",
-  },
-];
-
-const FILTERS = ["All", ...CATEGORIES.map((item) => item.name)];
-
-const HERO_FLOATING_CARDS = [
-  {
-    id: "new",
-    tag: "New Arrival",
-    name: "Rose Mist Kurti",
-    price: "₹ 2,299",
-    emoji: "🌷",
-    gradient: "from-[#f9ece8] to-[#f0d6cf]",
     rotationClass: "-rotate-[5deg]",
     placementClass: "left-2 top-10 z-20 sm:left-6",
     delay: "0ms",
   },
   {
-    id: "best",
-    tag: "Best Seller",
-    name: "Noor Premium Set",
-    price: "₹ 2,899",
-    emoji: "✨",
-    gradient: "from-[#f9f2e2] to-[#efd9b0]",
     rotationClass: "rotate-0",
     placementClass: "right-6 top-24 z-30 sm:right-10",
     delay: "140ms",
   },
   {
-    id: "trend",
-    tag: "Trending",
-    name: "Sitara Festive",
-    price: "₹ 3,499",
-    emoji: "💫",
-    gradient: "from-[#f4e3e8] to-[#ecced6]",
     rotationClass: "rotate-[5deg]",
     placementClass: "left-12 top-44 z-10 sm:left-20",
     delay: "260ms",
   },
 ];
 
-const WHATSAPP_MESSAGE = (productName) =>
-  `https://wa.me/918619279790?text=${encodeURIComponent(
-    `Hi Behnaaz, I want to order ${productName}. Please share details.`,
-  )}`;
+const HERO_CARD_GRADIENTS = [
+  "from-[#f9ece8] to-[#f0d6cf]",
+  "from-[#f9f2e2] to-[#efd9b0]",
+  "from-[#f4e3e8] to-[#ecced6]",
+];
 
-function ProductCard({ product }) {
-  return (
-    <article className="group rounded-2xl border border-[#eee2dc] bg-white p-4 shadow-sm transition duration-300 hover:-translate-y-1 hover:shadow-lg">
-      <div
-        className={`flex h-44 items-center justify-center rounded-xl bg-gradient-to-br ${product.tone} text-5xl`}
-      >
-        <span aria-hidden="true">{product.emoji}</span>
-      </div>
+function getCategoryTheme(name) {
+  const key = String(name || "")
+    .toLowerCase()
+    .replace(/\s+/g, " ")
+    .trim();
 
-      <div className="pt-4">
-        <p className="text-xs uppercase tracking-[0.14em] text-[#b8965a]">
-          {product.category}
-        </p>
-        <h3 className="mt-1 text-2xl text-[#1c1410] [font-family:var(--font-cormorant)]">
-          {product.name}
-        </h3>
-        <p className="mt-1 text-sm text-[#5a4b44]">{product.subtitle}</p>
-        <p className="mt-3 text-lg font-semibold text-[#1c1410]">
-          ₹ {product.price.toLocaleString("en-IN")}
-        </p>
-      </div>
+  if (key.includes("easy wear")) {
+    return CATEGORY_THEMES.easyWear;
+  }
 
-      <div className="mt-4 grid grid-cols-2 gap-2">
-        <a
-          href={WHATSAPP_MESSAGE(product.name)}
-          target="_blank"
-          rel="noopener noreferrer"
-          className="inline-flex items-center justify-center rounded-full bg-[#c8847a] px-4 py-2 text-sm font-semibold text-white transition hover:bg-[#b9766d]"
-        >
-          WhatsApp
-        </a>
-        <a
-          href={`tel:${PHONE_DIAL}`}
-          className="inline-flex items-center justify-center rounded-full border border-[#1c1410] px-4 py-2 text-sm font-semibold text-[#1c1410] transition hover:bg-[#1c1410] hover:text-white"
-        >
-          Call
-        </a>
-      </div>
-    </article>
-  );
+  if (key.includes("co-ord") || key.includes("coord")) {
+    return CATEGORY_THEMES.chicCoord;
+  }
+
+  if (key.includes("comfort")) {
+    return CATEGORY_THEMES.styleComfort;
+  }
+
+  if (key.includes("festive") || key.includes("wedding")) {
+    return CATEGORY_THEMES.festiveWedding;
+  }
+
+  if (key.includes("best seller")) {
+    return CATEGORY_THEMES.bestSellers;
+  }
+
+  return CATEGORY_THEMES.default;
+}
+
+function mapProduct(doc) {
+  const data = doc.data();
+  const rawName = data.name || data.product_name || data.title;
+  const rawCategory = data.category || data.collection;
+
+  return {
+    id: doc.id,
+    name: typeof rawName === "string" ? rawName.trim() : "",
+    price: data.price ?? data.mrp,
+    category:
+      typeof rawCategory === "string" && rawCategory.trim()
+        ? rawCategory.trim()
+        : "Uncategorized",
+    description:
+      typeof data.short_description === "string"
+        ? data.short_description
+        : typeof data.description === "string"
+          ? data.description
+          : "",
+    image_url:
+      data.image_url || data.imageUrl || data.photo_url || data.photoUrl || "",
+    inStock: data.in_stock === undefined ? true : Boolean(data.in_stock),
+    hidden: Boolean(data.hidden),
+  };
+}
+
+function formatPrice(value) {
+  const numeric = Number(value);
+  if (Number.isNaN(numeric)) {
+    return "Price on request";
+  }
+
+  return new Intl.NumberFormat("en-IN", {
+    style: "currency",
+    currency: "INR",
+    maximumFractionDigits: 0,
+  }).format(numeric);
 }
 
 export default function Home() {
   const [activeFilter, setActiveFilter] = useState("All");
+  const [products, setProducts] = useState([]);
+  const [loadingProducts, setLoadingProducts] = useState(true);
+  const [productsError, setProductsError] = useState("");
+
+  useEffect(() => {
+    let cancelled = false;
+
+    async function fetchProducts() {
+      setLoadingProducts(true);
+      setProductsError("");
+
+      try {
+        const productQuery = query(
+          collection(db, "products"),
+          where("in_stock", "==", true),
+        );
+
+        const snap = await withTimeout(getDocs(productQuery));
+
+        if (cancelled) {
+          return;
+        }
+
+        const mapped = snap.docs
+          .map(mapProduct)
+          .filter((item) => item.name && item.inStock && !item.hidden);
+
+        setProducts(mapped);
+      } catch (error) {
+        if (cancelled) {
+          return;
+        }
+
+        console.error("Firebase error:", error);
+        setProducts([]);
+        setProductsError("Unable to load products. Check connection.");
+      } finally {
+        if (!cancelled) {
+          setLoadingProducts(false);
+        }
+      }
+    }
+
+    fetchProducts();
+
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  const categories = useMemo(() => {
+    return Array.from(new Set(products.map((item) => item.category)));
+  }, [products]);
+
+  const filters = useMemo(() => ["All", ...categories], [categories]);
+
+  useEffect(() => {
+    if (!filters.includes(activeFilter)) {
+      setActiveFilter("All");
+    }
+  }, [activeFilter, filters]);
 
   const visibleProducts = useMemo(() => {
     if (activeFilter === "All") {
-      return PRODUCTS;
+      return products;
     }
-    return PRODUCTS.filter((item) => item.category === activeFilter);
-  }, [activeFilter]);
 
-  const marqueeItems = [...CATEGORIES, ...CATEGORIES];
+    return products.filter((item) => item.category === activeFilter);
+  }, [activeFilter, products]);
+
+  const marqueeItems = useMemo(() => {
+    if (!categories.length) {
+      return ["Live Firestore Catalog", "New Drops", "Ready to Order"];
+    }
+
+    return [...categories, ...categories];
+  }, [categories]);
+
+  const categoryCounts = useMemo(() => {
+    return products.reduce((accumulator, item) => {
+      accumulator[item.category] = (accumulator[item.category] || 0) + 1;
+      return accumulator;
+    }, {});
+  }, [products]);
+
+  const categoryCards = useMemo(() => {
+    return categories.map((name) => {
+      const style = getCategoryTheme(name);
+
+      return {
+        name,
+        emoji: style.emoji,
+        gradient: style.gradient,
+        description: style.description,
+        count: categoryCounts[name] || 0,
+      };
+    });
+  }, [categories, categoryCounts]);
+
+  const heroProducts = useMemo(() => products.slice(0, 3), [products]);
 
   return (
-    <div id="home" className="text-[#1c1410]">
+    <div id="home" className="motion-pop text-[#1c1410]">
       <section className="relative overflow-hidden">
         <div className="hero-soft-pattern pointer-events-none absolute inset-0 opacity-[0.05]" />
 
-        <div className="relative mx-auto grid max-w-7xl items-center gap-10 px-4 pb-10 pt-12 sm:px-6 lg:grid-cols-2 lg:pb-12 lg:pt-16 lg:px-8">
+        <div className="relative mx-auto grid max-w-7xl items-center gap-10 px-4 pb-10 pt-12 sm:px-6 lg:grid-cols-2 lg:px-8 lg:pb-12 lg:pt-16">
           <div>
-            <p className="text-xs font-medium uppercase tracking-[0.2em] text-[#b8965a]">
+            <p className="motion-enter text-xs font-medium uppercase tracking-[0.2em] text-[#b8965a]">
               Behnaaz Signature Collection
             </p>
-            <h1 className="mt-5 text-5xl leading-tight text-[#1c1410] sm:text-6xl lg:text-7xl [font-family:var(--font-cormorant)]">
+            <h1 className="motion-enter motion-delay-1 mt-5 text-5xl leading-tight text-[#1c1410] [font-family:var(--font-cormorant)] sm:text-6xl lg:text-7xl">
               Elegance in Every{" "}
               <span className="italic text-[#c8847a]">Thread</span>
             </h1>
-            <p className="mt-6 max-w-xl text-base leading-relaxed text-[#4c3f38] sm:text-lg">
+            <p className="motion-enter motion-delay-2 mt-6 max-w-xl text-base leading-relaxed text-[#4c3f38] sm:text-lg">
               Discover refined kurti styles crafted for daily grace, festive
               sparkle, and wedding moments that deserve unforgettable elegance.
             </p>
 
-            <div className="mt-8 flex flex-wrap gap-3">
+            <div className="motion-enter motion-delay-3 mt-8 flex flex-wrap gap-3">
               <Link
                 href="/#products"
-                className="rounded-full bg-[#c8847a] px-7 py-3 text-sm font-semibold uppercase tracking-[0.08em] text-white transition hover:-translate-y-0.5 hover:bg-[#b9766d]"
+                className="motion-button rounded-full bg-[#c8847a] px-7 py-3 text-sm font-semibold uppercase tracking-[0.08em] text-white transition hover:-translate-y-0.5 hover:bg-[#b9766d]"
               >
                 Shop Collection
               </Link>
               <Link
                 href="/#categories"
-                className="rounded-full border border-[#1c1410] px-7 py-3 text-sm font-semibold uppercase tracking-[0.08em] text-[#1c1410] transition hover:bg-[#1c1410] hover:text-white"
+                className="motion-button rounded-full border border-[#1c1410] px-7 py-3 text-sm font-semibold uppercase tracking-[0.08em] text-[#1c1410] transition hover:bg-[#1c1410] hover:text-white"
               >
                 Explore Categories
               </Link>
@@ -220,62 +300,90 @@ export default function Home() {
             <span className="absolute right-5 top-14 text-sm text-[#b8965a]/80">
               ✦
             </span>
-            <span className="absolute right-16 bottom-16 text-base text-[#b8965a]/80">
+            <span className="absolute bottom-16 right-16 text-base text-[#b8965a]/80">
               ✦
             </span>
 
-            <div className="absolute left-0 top-0 z-40 rounded-full border border-[#e9d8d1] bg-white/90 px-4 py-2 text-xs font-semibold uppercase tracking-[0.08em] text-[#7b4456] shadow-sm">
-              100+ Happy Customers
+            <div className="motion-float absolute right-2 top-2 z-50 rounded-md border border-[#ecd8d2] bg-white px-3 py-2 text-[10px] font-semibold uppercase tracking-[0.08em] text-[#5f4a42] shadow-sm sm:right-6 sm:top-6 sm:text-xs">
+              <span className="mr-1 text-[#C8847A]">⭐</span>
+              500+ Happy Customers
             </div>
 
-            <div className="absolute bottom-4 right-2 z-40 rounded-full border border-[#e3d3c5] bg-[#fff7ea] px-4 py-2 text-xs font-semibold uppercase tracking-[0.08em] text-[#8f6a3a] shadow-sm">
-              Free Delivery
+            <div
+              className="motion-float absolute bottom-2 left-1 z-50 rounded-md border border-[#ecd8d2] bg-white px-3 py-2 text-[10px] font-semibold uppercase tracking-[0.08em] text-[#5f4a42] shadow-sm sm:bottom-8 sm:left-4 sm:text-xs"
+              style={{ animationDelay: "0.8s" }}
+            >
+              🚚 Free Delivery Available
             </div>
 
-            {HERO_FLOATING_CARDS.map((card) => (
-              <div
-                key={card.id}
-                className={`absolute ${card.placementClass} ${card.rotationClass} w-[74%] max-w-[280px]`}
-              >
-                <article
-                  className="hero-card-reveal rounded-2xl border border-[#ead9d3] bg-white/90 p-3 shadow-xl shadow-[#c8847a]/10 backdrop-blur-sm"
-                  style={{ animationDelay: card.delay }}
+            <div
+              className="motion-float absolute right-1 top-1/2 z-50 rounded-md border border-[#ecd8d2] bg-white px-3 py-2 text-[10px] font-semibold uppercase tracking-[0.08em] text-[#5f4a42] shadow-sm sm:right-6 sm:text-xs"
+              style={{ animationDelay: "1.4s" }}
+            >
+              <span className="mr-1 text-[#C8847A]">✦</span>
+              New Collection 2025
+            </div>
+
+            <div className="motion-button absolute left-0 top-0 z-40 rounded-full border border-[#e9d8d1] bg-white/90 px-4 py-2 text-xs font-semibold uppercase tracking-[0.08em] text-[#7b4456] shadow-sm">
+              Live From Firestore
+            </div>
+
+            <div className="motion-button absolute bottom-4 right-2 z-40 rounded-full border border-[#e3d3c5] bg-[#fff7ea] px-4 py-2 text-xs font-semibold uppercase tracking-[0.08em] text-[#8f6a3a] shadow-sm">
+              Real-Time Catalog
+            </div>
+
+            {heroProducts.map((product, index) => {
+              const layout = HERO_CARD_LAYOUTS[index];
+              const gradient =
+                HERO_CARD_GRADIENTS[index % HERO_CARD_GRADIENTS.length];
+
+              return (
+                <div
+                  key={product.id}
+                  className={`absolute ${layout.placementClass} ${layout.rotationClass} w-[74%] max-w-[280px]`}
                 >
-                  <div
-                    className={`mb-3 flex h-24 items-center justify-center rounded-xl bg-gradient-to-br ${card.gradient} text-4xl`}
+                  <article
+                    className="hero-card-reveal rounded-2xl border border-[#ead9d3] bg-white/90 p-3 shadow-xl shadow-[#c8847a]/10 backdrop-blur-sm"
+                    style={{ animationDelay: layout.delay }}
                   >
-                    <span aria-hidden="true">{card.emoji}</span>
-                  </div>
-                  <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-[#7b4456]">
-                    {card.tag}
-                  </p>
-                  <h3 className="mt-1 text-xl text-[#1c1410] [font-family:var(--font-cormorant)]">
-                    {card.name}
-                  </h3>
-                  <p className="mt-1 text-sm font-semibold text-[#b8965a]">
-                    {card.price}
-                  </p>
-                </article>
-              </div>
-            ))}
+                    <div
+                      className={`mb-3 flex h-24 items-center justify-center rounded-xl bg-gradient-to-br ${gradient} px-4 text-center`}
+                    >
+                      <span className="line-clamp-2 text-sm font-semibold uppercase tracking-[0.08em] text-[#4f433d]">
+                        {product.category}
+                      </span>
+                    </div>
+                    <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-[#7b4456]">
+                      In Stock
+                    </p>
+                    <h3 className="mt-1 line-clamp-2 text-xl text-[#1c1410] [font-family:var(--font-cormorant)]">
+                      {product.name}
+                    </h3>
+                    <p className="mt-1 text-sm font-semibold text-[#b8965a]">
+                      {formatPrice(product.price)}
+                    </p>
+                  </article>
+                </div>
+              );
+            })}
           </div>
         </div>
 
         <div className="relative mx-auto max-w-4xl px-4 pb-10 sm:px-6 lg:px-8 lg:pb-14">
           <div className="grid grid-cols-3 rounded-2xl border border-[#e8dad4] bg-white/85 text-center shadow-sm backdrop-blur">
-            <div className="px-3 py-4 sm:py-5">
+            <div className="motion-enter motion-delay-2 px-3 py-4 sm:py-5">
               <p className="text-sm font-semibold uppercase tracking-[0.08em] text-[#1c1410] sm:text-base">
-                100+ Products
+                {products.length} Live Products
               </p>
             </div>
-            <div className="border-x border-[#ece0da] px-3 py-4 sm:py-5">
+            <div className="motion-enter motion-delay-3 border-x border-[#ece0da] px-3 py-4 sm:py-5">
               <p className="text-sm font-semibold uppercase tracking-[0.08em] text-[#1c1410] sm:text-base">
-                500+ Customers
+                {categories.length} Categories
               </p>
             </div>
-            <div className="px-3 py-4 sm:py-5">
+            <div className="motion-enter motion-delay-4 px-3 py-4 sm:py-5">
               <p className="text-sm font-semibold uppercase tracking-[0.08em] text-[#1c1410] sm:text-base">
-                5★ Rated
+                {loadingProducts ? "Syncing" : "Synced"}
               </p>
             </div>
           </div>
@@ -286,10 +394,10 @@ export default function Home() {
         <div className="marquee-track">
           {marqueeItems.map((item, index) => (
             <div
-              key={`${item.name}-${index}`}
+              key={`${item}-${index}`}
               className="flex items-center gap-4 px-4 text-sm font-medium uppercase tracking-[0.1em]"
             >
-              <span>{item.name}</span>
+              <span>{item}</span>
               <span className="text-[#b8965a]">★</span>
             </div>
           ))}
@@ -302,58 +410,70 @@ export default function Home() {
       >
         <div className="flex items-end justify-between gap-4">
           <div>
-            <p className="text-xs font-medium uppercase tracking-[0.2em] text-[#b8965a]">
+            <p className="motion-enter text-xs font-medium uppercase tracking-[0.2em] text-[#b8965a]">
               Shop By Mood
             </p>
-            <h2 className="mt-2 text-4xl text-[#1c1410] sm:text-5xl [font-family:var(--font-cormorant)]">
+            <h2 className="motion-enter motion-delay-1 mt-2 text-4xl text-[#1c1410] [font-family:var(--font-cormorant)] sm:text-5xl">
               Curated Categories
             </h2>
           </div>
         </div>
 
-        <div className="mt-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
-          {CATEGORIES.map((item) => (
-            <article
-              key={item.name}
-              className={`rounded-2xl border border-[#ebddd8] bg-gradient-to-br ${item.gradient} p-5 transition hover:-translate-y-1 hover:shadow-md`}
-            >
-              <div className="mb-6 flex h-16 w-16 items-center justify-center rounded-full bg-white/70 text-3xl">
-                <span aria-hidden="true">{item.emoji}</span>
-              </div>
-              <h3 className="text-2xl text-[#1c1410] [font-family:var(--font-cormorant)]">
-                {item.name}
-              </h3>
-              <p className="mt-2 text-sm text-[#4f433d]">{item.description}</p>
-              <Link
-                href={`/#products`}
-                className="mt-5 inline-flex text-sm font-semibold text-[#c8847a] transition hover:text-[#b9766d]"
+        {categoryCards.length ? (
+          <div className="mt-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
+            {categoryCards.map((item, index) => (
+              <article
+                key={item.name}
+                className={`motion-card motion-sheen rounded-2xl border border-[#ebddd8] bg-gradient-to-br ${item.gradient} p-5 transition hover:-translate-y-1 hover:shadow-md`}
+                style={{ animationDelay: `${index * 90}ms` }}
               >
-                View Collection →
-              </Link>
-            </article>
-          ))}
-        </div>
+                <div className="mb-6 flex h-16 w-16 items-center justify-center rounded-full bg-white/70 text-3xl">
+                  <span aria-hidden="true">{item.emoji}</span>
+                </div>
+                <h3 className="text-2xl text-[#1c1410] [font-family:var(--font-cormorant)]">
+                  {item.name}
+                </h3>
+                <p className="mt-2 inline-flex rounded-full border border-[#d8c4ba] bg-white/75 px-2.5 py-1 text-[11px] font-semibold uppercase tracking-[0.06em] text-[#6a5148]">
+                  {item.count} Products
+                </p>
+                <p className="mt-2 text-sm text-[#4f433d]">
+                  {item.description}
+                </p>
+                <Link
+                  href={`/products?category=${encodeURIComponent(item.name)}`}
+                  className="motion-button mt-5 inline-flex text-sm font-semibold text-[#c8847a] transition hover:text-[#b9766d]"
+                >
+                  View Collection →
+                </Link>
+              </article>
+            ))}
+          </div>
+        ) : (
+          <p className="mt-8 rounded-2xl border border-dashed border-[#dbcfc9] bg-[#faf7f4] p-8 text-center text-sm text-[#5d504a]">
+            Categories will appear automatically from your Firestore products.
+          </p>
+        )}
       </section>
 
       <section id="products" className="bg-white py-16">
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
           <div className="flex flex-wrap items-end justify-between gap-4">
             <div>
-              <p className="text-xs font-medium uppercase tracking-[0.2em] text-[#b8965a]">
+              <p className="motion-enter text-xs font-medium uppercase tracking-[0.2em] text-[#b8965a]">
                 Featured Picks
               </p>
-              <h2 className="mt-2 text-4xl text-[#1c1410] sm:text-5xl [font-family:var(--font-cormorant)]">
+              <h2 className="motion-enter motion-delay-1 mt-2 text-4xl text-[#1c1410] [font-family:var(--font-cormorant)] sm:text-5xl">
                 Our Products
               </h2>
             </div>
 
             <div className="flex flex-wrap gap-2">
-              {FILTERS.map((filter) => (
+              {filters.map((filter) => (
                 <button
                   key={filter}
                   type="button"
                   onClick={() => setActiveFilter(filter)}
-                  className={`rounded-full border px-4 py-2 text-xs font-semibold uppercase tracking-[0.08em] transition sm:text-sm ${
+                  className={`motion-chip rounded-full border px-4 py-2 text-xs font-semibold uppercase tracking-[0.08em] transition sm:text-sm ${
                     activeFilter === filter
                       ? "border-[#c8847a] bg-[#c8847a] text-white"
                       : "border-[#ddd0ca] bg-[#faf7f4] text-[#1c1410] hover:border-[#c8847a] hover:text-[#c8847a]"
@@ -365,22 +485,45 @@ export default function Home() {
             </div>
           </div>
 
-          <div className="mt-8 grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
-            {visibleProducts.length > 0 ? (
-              visibleProducts.map((product) => (
-                <ProductCard key={product.id} product={product} />
-              ))
-            ) : (
-              <div className="sm:col-span-2 lg:col-span-4 rounded-2xl border border-dashed border-[#dbcfc9] bg-[#faf7f4] p-8 text-center">
-                <p className="text-xl text-[#1c1410] [font-family:var(--font-cormorant)]">
-                  New arrivals for {activeFilter} are coming soon.
-                </p>
-                <p className="mt-2 text-sm text-[#5d504a]">
-                  Tap WhatsApp and we will share available pieces instantly.
-                </p>
-              </div>
-            )}
-          </div>
+          {productsError && (
+            <p className="mt-6 rounded-xl border border-[#f0c9c9] bg-[#fff1f1] px-4 py-3 text-sm text-[#8b3e4f]">
+              {productsError}
+            </p>
+          )}
+
+          {loadingProducts ? (
+            <div className="mt-8 grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
+              {Array.from({ length: 8 }).map((_, index) => (
+                <article
+                  key={index}
+                  className="motion-pop overflow-hidden rounded-2xl border border-[#ecd9cf] bg-white/70 shadow-sm"
+                  style={{ animationDelay: `${index * 80}ms` }}
+                >
+                  <div className="aspect-[4/5] animate-pulse bg-[#f2e5dc]" />
+                  <div className="space-y-3 p-4 sm:p-5">
+                    <div className="h-5 w-2/3 animate-pulse rounded bg-[#f2e5dc]" />
+                    <div className="h-4 w-1/3 animate-pulse rounded bg-[#f2e5dc]" />
+                    <div className="h-4 w-full animate-pulse rounded bg-[#f2e5dc]" />
+                  </div>
+                </article>
+              ))}
+            </div>
+          ) : visibleProducts.length ? (
+            <div className="mt-8 grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
+              {visibleProducts.map((product, index) => (
+                <ProductCard key={product.id} product={product} index={index} />
+              ))}
+            </div>
+          ) : (
+            <div className="motion-enter mt-8 rounded-2xl border border-dashed border-[#dbcfc9] bg-[#faf7f4] p-8 text-center">
+              <p className="text-xl text-[#1c1410] [font-family:var(--font-cormorant)]">
+                No products found for {activeFilter}.
+              </p>
+              <p className="mt-2 text-sm text-[#5d504a]">
+                Add products in Firestore and they will appear here instantly.
+              </p>
+            </div>
+          )}
         </div>
       </section>
 
@@ -394,13 +537,13 @@ export default function Home() {
             alt="Behnaaz owner"
             width={110}
             height={110}
-            className="h-24 w-24 rounded-full border-2 border-[#b8965a] object-cover sm:h-28 sm:w-28"
+            className="motion-float h-24 w-24 rounded-full border-2 border-[#b8965a] object-cover sm:h-28 sm:w-28"
           />
-          <p className="text-2xl italic leading-relaxed text-[#f6e5d7] [font-family:var(--font-cormorant)] sm:text-3xl">
-            “Every Behnaaz piece is chosen with love so every woman feels
-            confident, graceful, and beautifully herself.”
+          <p className="motion-enter text-2xl italic leading-relaxed text-[#f6e5d7] [font-family:var(--font-cormorant)] sm:text-3xl">
+            &ldquo;Every Behnaaz piece is chosen with love so every woman feels
+            confident, graceful, and beautifully herself.&rdquo;
           </p>
-          <p className="text-sm uppercase tracking-[0.2em] text-[#b8965a]">
+          <p className="motion-enter motion-delay-2 text-sm uppercase tracking-[0.2em] text-[#b8965a]">
             Tamanna & Namrata, Founders
           </p>
         </div>

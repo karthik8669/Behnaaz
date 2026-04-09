@@ -1,12 +1,11 @@
 "use client";
-import { useState } from "react";
 import Link from "next/link";
+import Image from "next/image";
 
 export default function Navbar() {
-  const [open, setOpen] = useState(false);
-
   return (
     <nav
+      className="motion-nav"
       style={{
         position: "sticky",
         top: 0,
@@ -14,7 +13,7 @@ export default function Navbar() {
         background: "#fff",
         borderBottom: "1px solid #EDE8E4",
         padding: "0 40px",
-        height: "64px",
+        height: "84px",
         display: "flex",
         alignItems: "center",
         justifyContent: "space-between",
@@ -22,23 +21,37 @@ export default function Navbar() {
     >
       <Link
         href="/"
+        aria-label="Behnaaz home"
+        className="motion-button"
         style={{
-          fontFamily: "serif",
-          fontSize: "26px",
-          fontWeight: 300,
-          letterSpacing: "4px",
-          color: "#1C1410",
+          display: "inline-flex",
+          alignItems: "center",
           textDecoration: "none",
         }}
       >
-        Behn<span style={{ color: "#C8847A" }}>aa</span>z
+        <Image
+          src="/logo.png"
+          alt="Behnaaz"
+          width={80}
+          height={80}
+          style={{
+            objectFit: "contain",
+            borderRadius: "50%",
+            border: "2px solid #EDE8E4",
+          }}
+          priority
+        />
       </Link>
 
-      <div style={{ display: "flex", gap: "32px" }} className="desk-links">
+      <div
+        style={{ display: "flex", alignItems: "center", gap: "32px" }}
+        className="desk-links"
+      >
         {["/", "/products", "/categories", "/contact"].map((href, i) => (
           <Link
             key={i}
             href={href}
+            className="motion-underline-link"
             style={{
               fontSize: "12px",
               letterSpacing: "2px",
@@ -55,6 +68,8 @@ export default function Navbar() {
       <a
         href="https://wa.me/918619279790"
         target="_blank"
+        rel="noopener noreferrer"
+        className="motion-button"
         style={{
           background: "#C8847A",
           color: "#fff",
