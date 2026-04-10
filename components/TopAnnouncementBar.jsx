@@ -3,7 +3,8 @@
 import { useEffect, useState } from "react";
 
 const DISMISS_KEY = "behnaaz-top-offer-dismissed-v1";
-const WHATSAPP_LINK = "https://wa.me/918619279790";
+const WHATSAPP_LINK =
+  "https://wa.me/918619279790?text=Hi! I visited Behnaaz website and I am interested in your collection. Can you help me?";
 const OFFER_TEXT =
   "✦ SPECIAL OFFER — Flat 10% OFF on all products Use code: BEHNAAZ10 ✦ Shop now on WhatsApp";
 
@@ -38,20 +39,15 @@ export default function TopAnnouncementBar() {
   return (
     <div className="announcement-bar" role="region" aria-label="Special offer">
       <div className="announcement-marquee-wrap">
-        <div className="announcement-marquee-track">
-          {Array.from({ length: 3 }).map((_, index) => (
-            <a
-              key={index}
-              href={WHATSAPP_LINK}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="announcement-item"
-              aria-label="Shop now on WhatsApp"
-            >
-              {OFFER_TEXT}
-            </a>
-          ))}
-        </div>
+        <a
+          href={WHATSAPP_LINK}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="announcement-item announcement-item-single"
+          aria-label="Shop now on WhatsApp"
+        >
+          {OFFER_TEXT}
+        </a>
       </div>
 
       <button

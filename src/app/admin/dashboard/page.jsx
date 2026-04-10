@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { db, storage } from "@/lib/firebase";
 import {
@@ -37,17 +38,12 @@ function withTimeout(promise, timeoutMs = FIREBASE_TIMEOUT_MS) {
 const SIZES = ["S", "M", "L", "XL", "XXL", "Free Size"];
 const CATS = [
   "Easy Wear Sets",
-  "Chic Co-ord and Sets",
-  "Style in Comfort",
+  "Chic Co-ord Sets",
   "Festive / Wedding Wear",
-  "Best Sellers",
-  "Printed Kurtis",
-  "Embroidered Kurtis",
   "Office Wear",
   "Casual Daily Wear",
-  "Kurta Palazzo Sets",
-  "Sharara Sets",
   "Sale / Discounts",
+  "Best Sellers",
 ];
 
 const EMPTY_EDIT_FORM = {
@@ -96,7 +92,7 @@ export default function Dashboard() {
     }
 
     fetchProducts();
-  }, []);
+  }, [router]);
 
   async function fetchProducts() {
     setLoadingProducts(true);
@@ -287,18 +283,35 @@ export default function Dashboard() {
 
   async function handleDelete(id) {
     if (!confirm("Delete this product?")) return;
-    await deleteDoc(doc(db, "products", id));
-    await fetchProducts();
+
+    try {
+      await deleteDoc(doc(db, "products", id));
+      await fetchProducts();
+    } catch (error) {
+      console.error("Firebase error:", error);
+      setProductsError("Unable to update products. Check connection.");
+    }
   }
 
   async function toggleStock(id, current) {
-    await updateDoc(doc(db, "products", id), { in_stock: !current });
-    await fetchProducts();
+    try {
+      await updateDoc(doc(db, "products", id), { in_stock: !current });
+      await fetchProducts();
+    } catch (error) {
+      console.error("Firebase error:", error);
+      setProductsError("Unable to update products. Check connection.");
+    }
   }
 
   return (
-    <div style={{ minHeight: "100vh", background: "#FAF7F4", padding: "24px" }}>
-      <div style={{ maxWidth: "760px", margin: "0 auto" }}>
+    <div
+      className="admin-root"
+      style={{ minHeight: "100vh", background: "#FAF7F4", padding: "24px" }}
+    >
+      <div
+        className="admin-root-inner"
+        style={{ maxWidth: "760px", margin: "0 auto" }}
+      >
         <div
           style={{
             display: "flex",
@@ -361,6 +374,7 @@ export default function Dashboard() {
           </h2>
 
           <label
+            className="admin-photo-upload"
             style={{
               display: "block",
               border: "2px dashed #EDE8E4",
@@ -383,12 +397,15 @@ export default function Dashboard() {
             />
 
             {preview ? (
-              <img
+              <Image
                 src={preview}
                 alt="New product preview"
+                width={1200}
+                height={800}
+                unoptimized
                 style={{
                   width: "100%",
-                  maxHeight: "200px",
+                  height: "200px",
                   objectFit: "cover",
                   borderRadius: "4px",
                 }}
@@ -686,9 +703,11 @@ export default function Dashboard() {
                   }}
                 >
                   {product.image_url && (
-                    <img
+                    <Image
                       src={product.image_url}
                       alt={product.name || "Product image"}
+                      width={64}
+                      height={64}
                       style={{
                         width: "64px",
                         height: "64px",
@@ -953,6 +972,7 @@ export default function Dashboard() {
                       >
                         {SIZES.map((size) => (
                           <label
+                            className="admin-size-option"
                             key={size}
                             style={{
                               display: "flex",
@@ -1014,13 +1034,16 @@ export default function Dashboard() {
                       </p>
 
                       {editPhotoPreview || editForm.image_url ? (
-                        <img
+                        <Image
                           src={editPhotoPreview || editForm.image_url}
                           alt={editForm.name || "Product image preview"}
+                          width={440}
+                          height={320}
+                          unoptimized={Boolean(editPhotoPreview)}
                           style={{
                             width: "100%",
                             maxWidth: "220px",
-                            maxHeight: "160px",
+                            height: "160px",
                             objectFit: "cover",
                             borderRadius: "6px",
                             border: "1px solid #EDE8E4",
@@ -1088,6 +1111,7 @@ export default function Dashboard() {
                     )}
 
                     <div
+                      className="admin-edit-actions"
                       style={{ display: "flex", gap: "10px", flexWrap: "wrap" }}
                     >
                       <button
@@ -1143,6 +1167,52 @@ export default function Dashboard() {
             }
             to {
               transform: rotate(360deg);
+            }
+          }
+
+          .admin-root input[type="text"],
+          .admin-root input[type="number"],
+          .admin-root input[type="password"],
+          .admin-root select,
+          .admin-root textarea,
+          .admin-root button {
+            min-height: 48px;
+          }
+
+          .admin-root input[type="checkbox"] {
+            width: 18px;
+            height: 18px;
+          }
+
+          .admin-root .admin-photo-upload {
+            min-height: 160px;
+            display: flex !important;
+            align-items: center;
+            justify-content: center;
+            flex-direction: column;
+          }
+
+          .admin-root .admin-size-option {
+            min-height: 48px;
+          }
+
+          @media (max-width: 768px) {
+            .admin-root {
+              padding: 12px !important;
+            }
+
+            .admin-root .admin-root-inner {
+              max-width: 100% !important;
+            }
+
+            .admin-root .admin-edit-actions {
+              display: grid !important;
+              grid-template-columns: 1fr !important;
+            }
+
+            .admin-root .admin-edit-actions button {
+              width: 100% !important;
+              flex: 1 1 auto !important;
             }
           }
         `}</style>

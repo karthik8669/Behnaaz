@@ -16,6 +16,12 @@ html {
   scroll-behavior: smooth;
 }
 
+html,
+body {
+  max-width: 100%;
+  overflow-x: hidden;
+}
+
 @media (prefers-reduced-motion: reduce) {
   html {
     scroll-behavior: auto;
@@ -33,7 +39,7 @@ html {
 
   .motion-float,
   .marquee-track,
-  .announcement-marquee-track {
+  .announcement-item-single {
     animation: none !important;
   }
 
@@ -118,12 +124,12 @@ body {
   }
 }
 
-@keyframes announcement-scroll {
+@keyframes announcement-single-scroll {
   0% {
-    transform: translateX(0);
+    transform: translateX(100%);
   }
   100% {
-    transform: translateX(-33.333%);
+    transform: translateX(calc(-100% - 100vw));
   }
 }
 
@@ -145,16 +151,6 @@ body {
   padding-right: 38px;
 }
 
-.announcement-marquee-track {
-  display: flex;
-  width: max-content;
-  animation: announcement-scroll 20s linear infinite;
-}
-
-.announcement-bar:hover .announcement-marquee-track {
-  animation-play-state: paused;
-}
-
 .announcement-item {
   display: inline-flex;
   align-items: center;
@@ -168,6 +164,16 @@ body {
   text-transform: uppercase;
   text-decoration: none;
   line-height: 1;
+}
+
+.announcement-item-single {
+  padding-left: 0;
+  animation: announcement-single-scroll 18s linear infinite;
+  will-change: transform;
+}
+
+.announcement-bar:hover .announcement-item-single {
+  animation-play-state: paused;
 }
 
 .announcement-item:hover {
@@ -206,6 +212,7 @@ body {
 @media (max-width: 640px) {
   .announcement-item {
     padding: 0 14px;
+    font-size: 10px;
     letter-spacing: 1.4px;
   }
 }
@@ -231,9 +238,82 @@ body {
   }
 }
 
+@keyframes fadeSlideIn {
+  0% {
+    opacity: 0;
+    transform: translateY(-12px);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes shimmer {
+  0% {
+    background-position: -200% center;
+  }
+  100% {
+    background-position: 200% center;
+  }
+}
+
+@keyframes lineGrow {
+  0% {
+    width: 0%;
+  }
+  100% {
+    width: 100%;
+  }
+}
+
 .hero-card-reveal {
   opacity: 0;
   animation: hero-card-reveal 780ms cubic-bezier(0.22, 1, 0.36, 1) forwards;
+}
+
+.hero-store-tag {
+  display: inline-block;
+  position: relative;
+  padding: 4px 0;
+  margin: 0;
+  font-size: 15px;
+  font-weight: 700;
+  letter-spacing: 6px;
+  text-transform: uppercase;
+  color: #c8847a;
+  background: linear-gradient(
+    90deg,
+    #c8847a 0%,
+    #c8847a 40%,
+    #b8965a 50%,
+    #c8847a 60%,
+    #c8847a 100%
+  );
+  background-size: 200% auto;
+  background-clip: text;
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  animation:
+    shimmer 3s linear infinite,
+    fadeSlideIn 0.8s ease forwards;
+}
+
+.hero-store-tag::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  bottom: 0;
+  height: 1px;
+  width: 0%;
+  background: #c8847a;
+  animation: lineGrow 1s ease 0.5s forwards;
+}
+
+@media (min-width: 768px) {
+  .hero-store-tag {
+    font-size: 18px;
+  }
 }
 
 .hero-soft-pattern {
@@ -332,6 +412,12 @@ body {
     transform 220ms cubic-bezier(0.22, 1, 0.36, 1),
     box-shadow 220ms ease,
     filter 220ms ease;
+}
+
+@media (max-width: 768px) {
+  .motion-button {
+    min-height: 44px;
+  }
 }
 
 .motion-button:hover {

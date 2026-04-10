@@ -2,7 +2,8 @@
 
 import { useEffect, useState } from "react";
 
-const ORDER_PHONE = "918619279790";
+const WHATSAPP_LINK =
+  "https://wa.me/918619279790?text=Hi! I visited Behnaaz website and I am interested in your collection. Can you help me?";
 const INSTAGRAM_LINK = "https://www.instagram.com/the_behnaaz_store";
 
 function formatPrice(value) {
@@ -32,12 +33,9 @@ export default function ProductCard({ product, index = 0 }) {
     setShowFallback(false);
   }, [imageSource]);
 
-  const whatsappMessage = `Hi, I am interested in ${name}`;
-  const whatsappUrl = `https://wa.me/${ORDER_PHONE}?text=${encodeURIComponent(whatsappMessage)}`;
-
   return (
     <article
-      className="motion-card motion-sheen group rounded-2xl border border-[#ecd9cf] bg-[#fffdfb] shadow-sm hover:shadow-md hover:shadow-[#ecd9cf]/50"
+      className="motion-card motion-sheen group w-full rounded-2xl border border-[#ecd9cf] bg-[#fffdfb] shadow-sm hover:shadow-md hover:shadow-[#ecd9cf]/50"
       style={{ animationDelay: `${Math.min(index, 10) * 85}ms` }}
     >
       <div className="relative aspect-[4/5] w-full overflow-hidden bg-[#f7ebe3]">
@@ -101,7 +99,7 @@ export default function ProductCard({ product, index = 0 }) {
 
         <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
           <a
-            href={whatsappUrl}
+            href={WHATSAPP_LINK}
             target="_blank"
             rel="noopener noreferrer"
             className="motion-button inline-flex items-center justify-center rounded-lg bg-[#25d366] px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-[#1ebc59]"

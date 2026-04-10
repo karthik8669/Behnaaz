@@ -27,38 +27,74 @@ function withTimeout(promise, timeoutMs = FIREBASE_TIMEOUT_MS) {
   });
 }
 
-const CATEGORY_THEMES = {
-  easyWear: {
-    emoji: "🌸",
-    gradient: "from-[#FFECE1] via-[#F9DFCF] to-[#F4CEB8]",
-    description: "Curated designs made for effortless everyday grace.",
+const HOMEPAGE_FIXED_CATEGORIES = [
+  {
+    name: "Easy Wear Sets",
+    queryCategory: "Easy Wear Sets",
+    description: "Effortless everyday style",
+    gradient: "from-[#FDEEE8] via-[#F8E4DC] to-[#F5D5CC]",
+    emoji: "👗",
   },
-  chicCoord: {
+  {
+    name: "Chic Co-ord Sets",
+    queryCategory: "Chic Co-ord Sets",
+    description: "Coordinated perfection",
+    gradient: "from-[#EEE8FD] via-[#E2D8FA] to-[#D5CCF5]",
     emoji: "✨",
-    gradient: "from-[#F4ECFF] via-[#EADCFB] to-[#DCC6F1]",
-    description: "Contemporary looks with elegant, wearable silhouettes.",
   },
-  styleComfort: {
-    emoji: "👜",
-    gradient: "from-[#EBF3E5] via-[#DCEAD2] to-[#CFE0C2]",
-    description: "Comfort-first edits that feel soft and look polished.",
+  {
+    name: "Festive Wedding Wear",
+    queryCategory: "Festive / Wedding Wear",
+    description: "Celebration ready looks",
+    gradient: "from-[#FDF8E8] via-[#F8F0D8] to-[#F5EAC5]",
+    emoji: "🌸",
   },
-  festiveWedding: {
-    emoji: "🎊",
-    gradient: "from-[#FBF3DF] via-[#F1E0B8] to-[#E9CE94]",
-    description: "Statement picks for festive evenings and wedding moments.",
+  {
+    name: "Office Wear",
+    queryCategory: "Office Wear",
+    description: "Professional and elegant",
+    gradient: "from-[#E8F5FD] via-[#DCEEF9] to-[#CCE5F5]",
+    emoji: "💼",
   },
-  bestSellers: {
-    emoji: "💫",
-    gradient: "from-[#F9E4E8] via-[#F2D3DB] to-[#E9BCC8]",
-    description: "Most-loved best sellers chosen by our regular shoppers.",
+  {
+    name: "Casual Daily Wear",
+    queryCategory: "Casual Daily Wear",
+    description: "Easy breezy everyday looks",
+    gradient: "from-[#F0FDE8] via-[#E8F8D9] to-[#E0F5CC]",
+    emoji: "☀️",
   },
-  default: {
-    emoji: "✦",
-    gradient: "from-[#F5EAE8] via-[#EFDDD8] to-[#E6D2CC]",
-    description: "Discover elegant pieces crafted with comfort and charm.",
+  {
+    name: "Sale Discounts",
+    queryCategory: "Sale / Discounts",
+    description: "Best deals on top styles",
+    gradient: "from-[#FDE8E8] via-[#F8DADA] to-[#F5CCCC]",
+    emoji: "🏷️",
   },
+  {
+    name: "Best Sellers",
+    queryCategory: "Best Sellers",
+    description: "Customer favourites",
+    gradient: "from-[#E8F0FD] via-[#DAE4FA] to-[#CCD5F5]",
+    emoji: "⭐",
+  },
+];
+
+const HOMEPAGE_CATEGORY_LOOKUP = {
+  "easy wear sets": "Easy Wear Sets",
+  "chic co ord sets": "Chic Co-ord Sets",
+  "chic co ord and sets": "Chic Co-ord Sets",
+  "festive wedding wear": "Festive Wedding Wear",
+  "office wear": "Office Wear",
+  "casual daily wear": "Casual Daily Wear",
+  "sale discounts": "Sale Discounts",
+  "best sellers": "Best Sellers",
+  "best seller": "Best Sellers",
 };
+
+const HOMEPAGE_MARQUEE_ITEMS = [
+  ...HOMEPAGE_FIXED_CATEGORIES.map((item) => item.name),
+  ...HOMEPAGE_FIXED_CATEGORIES.map((item) => item.name),
+];
 
 const HERO_CARD_LAYOUTS = [
   {
@@ -84,33 +120,16 @@ const HERO_CARD_GRADIENTS = [
   "from-[#f4e3e8] to-[#ecced6]",
 ];
 
-function getCategoryTheme(name) {
-  const key = String(name || "")
+function normalizeCategoryName(value) {
+  return String(value || "")
     .toLowerCase()
-    .replace(/\s+/g, " ")
+    .replace(/[^a-z0-9]+/g, " ")
     .trim();
+}
 
-  if (key.includes("easy wear")) {
-    return CATEGORY_THEMES.easyWear;
-  }
-
-  if (key.includes("co-ord") || key.includes("coord")) {
-    return CATEGORY_THEMES.chicCoord;
-  }
-
-  if (key.includes("comfort")) {
-    return CATEGORY_THEMES.styleComfort;
-  }
-
-  if (key.includes("festive") || key.includes("wedding")) {
-    return CATEGORY_THEMES.festiveWedding;
-  }
-
-  if (key.includes("best seller")) {
-    return CATEGORY_THEMES.bestSellers;
-  }
-
-  return CATEGORY_THEMES.default;
+function resolveHomepageCategory(value) {
+  const normalized = normalizeCategoryName(value);
+  return HOMEPAGE_CATEGORY_LOOKUP[normalized] || null;
 }
 
 function mapProduct(doc) {
@@ -224,34 +243,31 @@ export default function Home() {
     return products.filter((item) => item.category === activeFilter);
   }, [activeFilter, products]);
 
-  const marqueeItems = useMemo(() => {
-    if (!categories.length) {
-      return ["Live Firestore Catalog", "New Drops", "Ready to Order"];
-    }
-
-    return [...categories, ...categories];
-  }, [categories]);
+  const marqueeItems = HOMEPAGE_MARQUEE_ITEMS;
 
   const categoryCounts = useMemo(() => {
-    return products.reduce((accumulator, item) => {
-      accumulator[item.category] = (accumulator[item.category] || 0) + 1;
+    const counts = HOMEPAGE_FIXED_CATEGORIES.reduce((accumulator, item) => {
+      accumulator[item.name] = 0;
       return accumulator;
     }, {});
+
+    products.forEach((item) => {
+      const fixedName = resolveHomepageCategory(item.category);
+
+      if (fixedName) {
+        counts[fixedName] += 1;
+      }
+    });
+
+    return counts;
   }, [products]);
 
   const categoryCards = useMemo(() => {
-    return categories.map((name) => {
-      const style = getCategoryTheme(name);
-
-      return {
-        name,
-        emoji: style.emoji,
-        gradient: style.gradient,
-        description: style.description,
-        count: categoryCounts[name] || 0,
-      };
-    });
-  }, [categories, categoryCounts]);
+    return HOMEPAGE_FIXED_CATEGORIES.map((item) => ({
+      ...item,
+      count: categoryCounts[item.name] || 0,
+    }));
+  }, [categoryCounts]);
 
   const heroProducts = useMemo(() => products.slice(0, 3), [products]);
 
@@ -262,10 +278,10 @@ export default function Home() {
 
         <div className="relative mx-auto grid max-w-7xl items-center gap-10 px-4 pb-10 pt-12 sm:px-6 lg:grid-cols-2 lg:px-8 lg:pb-12 lg:pt-16">
           <div>
-            <p className="motion-enter text-xs font-medium uppercase tracking-[0.2em] text-[#b8965a]">
-              Behnaaz Signature Collection
+            <p className="hero-store-tag">
+              BEHNAAZ STORE
             </p>
-            <h1 className="motion-enter motion-delay-1 mt-5 text-5xl leading-tight text-[#1c1410] [font-family:var(--font-cormorant)] sm:text-6xl lg:text-7xl">
+            <h1 className="motion-enter motion-delay-1 mt-5 text-[42px] font-bold leading-tight text-[#1c1410] [font-family:var(--font-cormorant)] sm:text-6xl lg:text-[72px]">
               Elegance in Every{" "}
               <span className="italic text-[#c8847a]">Thread</span>
             </h1>
@@ -274,16 +290,16 @@ export default function Home() {
               sparkle, and wedding moments that deserve unforgettable elegance.
             </p>
 
-            <div className="motion-enter motion-delay-3 mt-8 flex flex-wrap gap-3">
+            <div className="motion-enter motion-delay-3 mt-8 flex flex-col gap-3 sm:flex-row sm:flex-wrap">
               <Link
                 href="/#products"
-                className="motion-button rounded-full bg-[#c8847a] px-7 py-3 text-sm font-semibold uppercase tracking-[0.08em] text-white transition hover:-translate-y-0.5 hover:bg-[#b9766d]"
+                className="motion-button inline-flex w-full justify-center rounded-full bg-[#c8847a] px-7 py-3 text-sm font-semibold uppercase tracking-[0.08em] text-white transition hover:-translate-y-0.5 hover:bg-[#b9766d] sm:w-auto"
               >
                 Shop Collection
               </Link>
               <Link
                 href="/#categories"
-                className="motion-button rounded-full border border-[#1c1410] px-7 py-3 text-sm font-semibold uppercase tracking-[0.08em] text-[#1c1410] transition hover:bg-[#1c1410] hover:text-white"
+                className="motion-button inline-flex w-full justify-center rounded-full border border-[#1c1410] px-7 py-3 text-sm font-semibold uppercase tracking-[0.08em] text-[#1c1410] transition hover:bg-[#1c1410] hover:text-white sm:w-auto"
               >
                 Explore Categories
               </Link>
@@ -304,32 +320,17 @@ export default function Home() {
               ✦
             </span>
 
-            <div className="motion-float absolute right-2 top-2 z-50 rounded-md border border-[#ecd8d2] bg-white px-3 py-2 text-[10px] font-semibold uppercase tracking-[0.08em] text-[#5f4a42] shadow-sm sm:right-6 sm:top-6 sm:text-xs">
+            <div className="motion-float absolute right-2 top-2 z-50 hidden rounded-md border border-[#ecd8d2] bg-white px-3 py-2 text-[10px] font-semibold uppercase tracking-[0.08em] text-[#5f4a42] shadow-sm sm:right-6 sm:top-6 sm:block sm:text-xs">
               <span className="mr-1 text-[#C8847A]">⭐</span>
               500+ Happy Customers
             </div>
 
             <div
-              className="motion-float absolute bottom-2 left-1 z-50 rounded-md border border-[#ecd8d2] bg-white px-3 py-2 text-[10px] font-semibold uppercase tracking-[0.08em] text-[#5f4a42] shadow-sm sm:bottom-8 sm:left-4 sm:text-xs"
-              style={{ animationDelay: "0.8s" }}
-            >
-              🚚 Free Delivery Available
-            </div>
-
-            <div
-              className="motion-float absolute right-1 top-1/2 z-50 rounded-md border border-[#ecd8d2] bg-white px-3 py-2 text-[10px] font-semibold uppercase tracking-[0.08em] text-[#5f4a42] shadow-sm sm:right-6 sm:text-xs"
+              className="motion-float absolute right-1 top-1/2 z-50 hidden rounded-md border border-[#ecd8d2] bg-white px-3 py-2 text-[10px] font-semibold uppercase tracking-[0.08em] text-[#5f4a42] shadow-sm sm:right-6 sm:block sm:text-xs"
               style={{ animationDelay: "1.4s" }}
             >
               <span className="mr-1 text-[#C8847A]">✦</span>
-              New Collection 2025
-            </div>
-
-            <div className="motion-button absolute left-0 top-0 z-40 rounded-full border border-[#e9d8d1] bg-white/90 px-4 py-2 text-xs font-semibold uppercase tracking-[0.08em] text-[#7b4456] shadow-sm">
-              Live From Firestore
-            </div>
-
-            <div className="motion-button absolute bottom-4 right-2 z-40 rounded-full border border-[#e3d3c5] bg-[#fff7ea] px-4 py-2 text-xs font-semibold uppercase tracking-[0.08em] text-[#8f6a3a] shadow-sm">
-              Real-Time Catalog
+              New Collection 2026
             </div>
 
             {heroProducts.map((product, index) => {
@@ -372,18 +373,18 @@ export default function Home() {
         <div className="relative mx-auto max-w-4xl px-4 pb-10 sm:px-6 lg:px-8 lg:pb-14">
           <div className="grid grid-cols-3 rounded-2xl border border-[#e8dad4] bg-white/85 text-center shadow-sm backdrop-blur">
             <div className="motion-enter motion-delay-2 px-3 py-4 sm:py-5">
-              <p className="text-sm font-semibold uppercase tracking-[0.08em] text-[#1c1410] sm:text-base">
-                {products.length} Live Products
+              <p className="text-[11px] font-semibold uppercase tracking-[0.08em] text-[#1c1410] sm:text-base">
+                200+ Products
               </p>
             </div>
             <div className="motion-enter motion-delay-3 border-x border-[#ece0da] px-3 py-4 sm:py-5">
-              <p className="text-sm font-semibold uppercase tracking-[0.08em] text-[#1c1410] sm:text-base">
-                {categories.length} Categories
+              <p className="text-[11px] font-semibold uppercase tracking-[0.08em] text-[#1c1410] sm:text-base">
+                500+ Customers
               </p>
             </div>
             <div className="motion-enter motion-delay-4 px-3 py-4 sm:py-5">
-              <p className="text-sm font-semibold uppercase tracking-[0.08em] text-[#1c1410] sm:text-base">
-                {loadingProducts ? "Syncing" : "Synced"}
+              <p className="text-[11px] font-semibold uppercase tracking-[0.08em] text-[#1c1410] sm:text-base">
+                5★ Rated
               </p>
             </div>
           </div>
@@ -411,48 +412,40 @@ export default function Home() {
         <div className="flex items-end justify-between gap-4">
           <div>
             <p className="motion-enter text-xs font-medium uppercase tracking-[0.2em] text-[#b8965a]">
-              Shop By Mood
+              Featured Categories
             </p>
             <h2 className="motion-enter motion-delay-1 mt-2 text-4xl text-[#1c1410] [font-family:var(--font-cormorant)] sm:text-5xl">
-              Curated Categories
+              Shop Categories
             </h2>
           </div>
         </div>
 
-        {categoryCards.length ? (
-          <div className="mt-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
-            {categoryCards.map((item, index) => (
-              <article
-                key={item.name}
-                className={`motion-card motion-sheen rounded-2xl border border-[#ebddd8] bg-gradient-to-br ${item.gradient} p-5 transition hover:-translate-y-1 hover:shadow-md`}
-                style={{ animationDelay: `${index * 90}ms` }}
+        <div className="mt-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+          {categoryCards.map((item, index) => (
+            <article
+              key={item.name}
+              className={`motion-card motion-sheen rounded-2xl border border-[#ebddd8] bg-gradient-to-br ${item.gradient} p-5 transition hover:-translate-y-1 hover:shadow-md`}
+              style={{ animationDelay: `${index * 90}ms` }}
+            >
+              <div className="mb-6 flex h-16 w-16 items-center justify-center rounded-full bg-white/70 text-3xl">
+                <span aria-hidden="true">{item.emoji}</span>
+              </div>
+              <h3 className="text-2xl text-[#1c1410] [font-family:var(--font-cormorant)]">
+                {item.name}
+              </h3>
+              <p className="mt-2 inline-flex rounded-full border border-[#d8c4ba] bg-white/75 px-2.5 py-1 text-[11px] font-semibold uppercase tracking-[0.06em] text-[#6a5148]">
+                {item.count} Products
+              </p>
+              <p className="mt-2 text-sm text-[#4f433d]">{item.description}</p>
+              <Link
+                href={`/products?category=${encodeURIComponent(item.queryCategory)}`}
+                className="motion-button mt-5 inline-flex text-sm font-semibold text-[#c8847a] transition hover:text-[#b9766d]"
               >
-                <div className="mb-6 flex h-16 w-16 items-center justify-center rounded-full bg-white/70 text-3xl">
-                  <span aria-hidden="true">{item.emoji}</span>
-                </div>
-                <h3 className="text-2xl text-[#1c1410] [font-family:var(--font-cormorant)]">
-                  {item.name}
-                </h3>
-                <p className="mt-2 inline-flex rounded-full border border-[#d8c4ba] bg-white/75 px-2.5 py-1 text-[11px] font-semibold uppercase tracking-[0.06em] text-[#6a5148]">
-                  {item.count} Products
-                </p>
-                <p className="mt-2 text-sm text-[#4f433d]">
-                  {item.description}
-                </p>
-                <Link
-                  href={`/products?category=${encodeURIComponent(item.name)}`}
-                  className="motion-button mt-5 inline-flex text-sm font-semibold text-[#c8847a] transition hover:text-[#b9766d]"
-                >
-                  View Collection →
-                </Link>
-              </article>
-            ))}
-          </div>
-        ) : (
-          <p className="mt-8 rounded-2xl border border-dashed border-[#dbcfc9] bg-[#faf7f4] p-8 text-center text-sm text-[#5d504a]">
-            Categories will appear automatically from your Firestore products.
-          </p>
-        )}
+                View Collection →
+              </Link>
+            </article>
+          ))}
+        </div>
       </section>
 
       <section id="products" className="bg-white py-16">
@@ -460,7 +453,7 @@ export default function Home() {
           <div className="flex flex-wrap items-end justify-between gap-4">
             <div>
               <p className="motion-enter text-xs font-medium uppercase tracking-[0.2em] text-[#b8965a]">
-                Featured Picks
+                Signature Picks
               </p>
               <h2 className="motion-enter motion-delay-1 mt-2 text-4xl text-[#1c1410] [font-family:var(--font-cormorant)] sm:text-5xl">
                 Our Products

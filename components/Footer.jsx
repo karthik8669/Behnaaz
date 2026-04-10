@@ -1,16 +1,29 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
-import { collection, onSnapshot, query, where } from "firebase/firestore";
-import { db } from "../lib/firebase";
 
 const PHONE_DISPLAY = "+91 861 927 9790";
 const PHONE_DIAL = "+918619279790";
-const WHATSAPP_LINK = "https://wa.me/918619279790";
+const WHATSAPP_LINK =
+  "https://wa.me/918619279790?text=Hi! I visited Behnaaz website and I am interested in your collection. Can you help me?";
 const INSTAGRAM_LINK =
   "https://www.instagram.com/the_behnaaz_store?igsh=cG1qeWt3ZG1td2t4";
+const STORE_ADDRESS_LINE_1 = "16/1137, Meera Colony, Ayad,";
+const STORE_ADDRESS_LINE_2 = "Udaipur, Rajasthan - 313001";
+
+const COLLECTION_LINKS = [
+  "Easy Wear Sets",
+  "Chic Co-ord Sets",
+  "Festive / Wedding Wear",
+  "Office Wear",
+  "Casual Daily Wear",
+  "Sale / Discounts",
+  "Best Sellers",
+].map((category) => ({
+  label: category,
+  href: `/products?category=${encodeURIComponent(category)}`,
+}));
 
 const QUICK_LINKS = [
   { label: "Home", href: "/#home" },
@@ -42,64 +55,15 @@ function WhatsAppIcon() {
 }
 
 export default function Footer() {
-  const [collectionLinks, setCollectionLinks] = useState([]);
-
-  useEffect(() => {
-    const productQuery = query(
-      collection(db, "products"),
-      where("in_stock", "==", true),
-    );
-
-    const unsubscribe = onSnapshot(
-      productQuery,
-      (snapshot) => {
-        const categories = Array.from(
-          new Set(
-            snapshot.docs
-              .map((doc) => {
-                const data = doc.data();
-                const rawCategory = data.category || data.collection;
-
-                if (typeof rawCategory !== "string") {
-                  return "";
-                }
-
-                return rawCategory.trim();
-              })
-              .filter(Boolean),
-          ),
-        )
-          .sort((a, b) => a.localeCompare(b))
-          .map((category) => ({
-            label: category,
-            href: `/products?category=${encodeURIComponent(category)}`,
-          }));
-
-        setCollectionLinks(categories);
-      },
-      () => setCollectionLinks([]),
-    );
-
-    return () => unsubscribe();
-  }, []);
-
-  const visibleCollectionLinks = useMemo(() => {
-    if (collectionLinks.length) {
-      return collectionLinks;
-    }
-
-    return [{ label: "All Products", href: "/products" }];
-  }, [collectionLinks]);
-
   return (
     <footer className="motion-enter bg-[#141010] text-[#f4e8e0]">
       <div className="mx-auto max-w-7xl px-4 py-14 sm:px-6 lg:px-8">
         <div className="grid gap-10 sm:grid-cols-2 lg:grid-cols-4">
-          <div>
+          <div className="text-center sm:text-left">
             <Link
               href="/"
               aria-label="Behnaaz home"
-              className="motion-button inline-flex items-center"
+              className="motion-button inline-flex w-full items-center justify-center sm:w-auto sm:justify-start"
             >
               <Image
                 src="/logo.png"
@@ -109,12 +73,12 @@ export default function Footer() {
                 style={{ objectFit: "contain" }}
               />
             </Link>
-            <p className="mt-3 max-w-xs text-sm leading-relaxed text-[#d6c2b8]">
+            <p className="mx-auto mt-3 max-w-xs text-sm leading-relaxed text-[#d6c2b8] sm:mx-0">
               Elegant kurti collections crafted for every day, every
               celebration, and every beautiful moment.
             </p>
 
-            <div className="mt-4 flex items-center gap-2">
+            <div className="mt-4 flex items-center justify-center gap-2 sm:justify-start">
               <a
                 href={INSTAGRAM_LINK}
                 target="_blank"
@@ -141,7 +105,7 @@ export default function Footer() {
               Collections
             </h3>
             <ul className="mt-4 space-y-2 text-sm text-[#d6c2b8]">
-              {visibleCollectionLinks.map((item, index) => (
+              {COLLECTION_LINKS.map((item, index) => (
                 <li
                   key={item.label}
                   className="motion-enter"
@@ -185,6 +149,12 @@ export default function Footer() {
               Contact
             </h3>
             <ul className="mt-4 space-y-2 text-sm text-[#d6c2b8]">
+              <li className="leading-relaxed text-[#d6c2b8]">
+                <span className="mr-1 text-[#c8847a]">📍</span>
+                {STORE_ADDRESS_LINE_1}
+                <br />
+                {STORE_ADDRESS_LINE_2}
+              </li>
               <li>
                 <a
                   href={`tel:${PHONE_DIAL}`}

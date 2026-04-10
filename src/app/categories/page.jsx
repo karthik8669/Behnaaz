@@ -29,74 +29,44 @@ const CATEGORIES = [
   {
     name: "Easy Wear Sets",
     description: "Effortless everyday style",
-    gradient: "linear-gradient(135deg, #FDEEE8, #F5D5CC)",
+    gradient: "linear-gradient(135deg,#FDEEE8,#F5D5CC)",
     emoji: "👗",
   },
   {
-    name: "Chic Co-ord and Sets",
+    name: "Chic Co-ord Sets",
     description: "Coordinated perfection",
-    gradient: "linear-gradient(135deg, #EEE8FD, #D5CCF5)",
+    gradient: "linear-gradient(135deg,#EEE8FD,#D5CCF5)",
     emoji: "✨",
-  },
-  {
-    name: "Style in Comfort",
-    description: "Comfort meets fashion",
-    gradient: "linear-gradient(135deg, #E8FDE8, #CCF5D5)",
-    emoji: "🌿",
   },
   {
     name: "Festive / Wedding Wear",
     description: "Celebration ready looks",
-    gradient: "linear-gradient(135deg, #FDF8E8, #F5EAC5)",
+    gradient: "linear-gradient(135deg,#FDF8E8,#F5EAC5)",
     emoji: "🌸",
-  },
-  {
-    name: "Best Sellers",
-    description: "Customer favourites",
-    gradient: "linear-gradient(135deg, #E8F0FD, #CCD5F5)",
-    emoji: "⭐",
-  },
-  {
-    name: "Printed Kurtis",
-    description: "Bold prints, bright style",
-    gradient: "linear-gradient(135deg, #FDE8F0, #F5CCE0)",
-    emoji: "🎨",
-  },
-  {
-    name: "Embroidered Kurtis",
-    description: "Intricate handcrafted details",
-    gradient: "linear-gradient(135deg, #FDF5E8, #F5E0CC)",
-    emoji: "🪡",
   },
   {
     name: "Office Wear",
     description: "Professional and elegant",
-    gradient: "linear-gradient(135deg, #E8F5FD, #CCE5F5)",
+    gradient: "linear-gradient(135deg,#E8F5FD,#CCE5F5)",
     emoji: "💼",
   },
   {
     name: "Casual Daily Wear",
     description: "Easy breezy everyday looks",
-    gradient: "linear-gradient(135deg, #F0FDE8, #E0F5CC)",
+    gradient: "linear-gradient(135deg,#F0FDE8,#E0F5CC)",
     emoji: "☀️",
-  },
-  {
-    name: "Kurta Palazzo Sets",
-    description: "Flowy and graceful",
-    gradient: "linear-gradient(135deg, #FDE8FD, #F5CCF5)",
-    emoji: "🌺",
-  },
-  {
-    name: "Sharara Sets",
-    description: "Traditional with a twist",
-    gradient: "linear-gradient(135deg, #FDEEE8, #EED5CC)",
-    emoji: "💫",
   },
   {
     name: "Sale / Discounts",
     description: "Best deals on top styles",
-    gradient: "linear-gradient(135deg, #FDE8E8, #F5CCCC)",
+    gradient: "linear-gradient(135deg,#FDE8E8,#F5CCCC)",
     emoji: "🏷️",
+  },
+  {
+    name: "Best Sellers",
+    description: "Customer favourites",
+    gradient: "linear-gradient(135deg,#E8F0FD,#CCD5F5)",
+    emoji: "⭐",
   },
 ];
 
@@ -227,7 +197,7 @@ export default function CategoriesPage() {
           </p>
         )}
 
-        <div className="mt-8 grid grid-cols-2 gap-4 md:grid-cols-2 md:gap-5 lg:grid-cols-4 lg:gap-6">
+        <div className="mt-8 grid grid-cols-2 gap-4 lg:grid-cols-3 lg:gap-6">
           {CATEGORIES.map((item, index) => {
             const count = productCounts[item.name] || 0;
             const hasProducts = count > 0;
@@ -235,7 +205,7 @@ export default function CategoriesPage() {
             return (
               <article
                 key={item.name}
-                className="motion-card motion-sheen group rounded-3xl border border-[#E6D5CE] p-4 shadow-[0_10px_24px_rgba(112,64,56,0.10)] transition-all duration-300 hover:-translate-y-1.5 hover:border-[#D9A29A] hover:shadow-[0_14px_30px_rgba(133,74,67,0.18)] sm:p-5"
+                className="motion-card motion-sheen group min-w-0 rounded-3xl border border-[#E6D5CE] p-4 shadow-[0_10px_24px_rgba(112,64,56,0.10)] transition-all duration-300 hover:-translate-y-1.5 hover:border-[#D9A29A] hover:shadow-[0_14px_30px_rgba(133,74,67,0.18)] sm:p-5"
                 style={{
                   backgroundImage: item.gradient,
                   animationDelay: `${index * 70}ms`,
@@ -249,7 +219,7 @@ export default function CategoriesPage() {
                   {item.emoji}
                 </p>
 
-                <h2 className="mt-3 text-center text-2xl leading-tight text-[#2D1D18] [font-family:var(--font-cormorant)] sm:text-[1.75rem]">
+                <h2 className="mt-3 break-words text-center text-lg leading-tight text-[#2D1D18] [font-family:var(--font-cormorant)] sm:text-[1.75rem]">
                   {item.name}
                 </h2>
 

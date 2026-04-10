@@ -1,6 +1,9 @@
-const WHATSAPP_URL = "https://wa.me/918619279790";
+const WHATSAPP_URL =
+  "https://wa.me/918619279790?text=Hi! I visited Behnaaz website and I am interested in your collection. Can you help me?";
 const INSTAGRAM_URL = "https://instagram.com/the_behnaaz_store";
 const PHONE_NUMBER = "+91 8619279790";
+const STORE_ADDRESS_LINE_1 = "16/1137, Meera Colony, Ayad,";
+const STORE_ADDRESS_LINE_2 = "Udaipur, Rajasthan - 313001";
 
 export default function ContactPage() {
   return (
@@ -19,6 +22,24 @@ export default function ContactPage() {
           </p>
 
           <div className="mt-8 grid gap-4 md:grid-cols-2">
+            <div
+              className="motion-card motion-sheen rounded-2xl border border-[#E8D9D3] bg-white/80 p-5 backdrop-blur-sm md:col-span-2"
+              style={{ animationDelay: "35ms" }}
+            >
+              <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[#A17A72]">
+                Address
+              </p>
+              <p className="mt-2 text-lg font-semibold text-[#1C1410]">
+                <span className="mr-2" aria-hidden="true">
+                  📍
+                </span>
+                {STORE_ADDRESS_LINE_1}
+              </p>
+              <p className="text-lg font-semibold text-[#1C1410]">
+                {STORE_ADDRESS_LINE_2}
+              </p>
+            </div>
+
             <div
               className="motion-card motion-sheen rounded-2xl border border-[#E8D9D3] bg-white/70 p-5 backdrop-blur-sm"
               style={{ animationDelay: "70ms" }}
@@ -86,7 +107,7 @@ export default function ContactPage() {
               href={WHATSAPP_URL}
               target="_blank"
               rel="noreferrer"
-              className="motion-button inline-flex items-center justify-center rounded-full bg-[#C8847A] px-6 py-4 text-center text-sm font-semibold uppercase tracking-[0.1em] text-white transition hover:bg-[#B9766D]"
+              className="motion-button inline-flex w-full items-center justify-center rounded-full bg-[#C8847A] px-6 py-4 text-center text-sm font-semibold uppercase tracking-[0.1em] text-white transition hover:bg-[#B9766D]"
             >
               Chat on WhatsApp
             </a>
@@ -95,7 +116,7 @@ export default function ContactPage() {
               href={INSTAGRAM_URL}
               target="_blank"
               rel="noreferrer"
-              className="motion-button inline-flex items-center justify-center rounded-full border border-[#C8AFA7] bg-[#F8F1ED] px-6 py-4 text-center text-sm font-semibold uppercase tracking-[0.1em] text-[#5E4149] transition hover:bg-[#F0E2DC]"
+              className="motion-button inline-flex w-full items-center justify-center rounded-full border border-[#C8AFA7] bg-[#F8F1ED] px-6 py-4 text-center text-sm font-semibold uppercase tracking-[0.1em] text-[#5E4149] transition hover:bg-[#F0E2DC]"
             >
               Open Instagram
             </a>
