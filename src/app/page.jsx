@@ -278,9 +278,7 @@ export default function Home() {
 
         <div className="relative mx-auto grid max-w-7xl items-center gap-10 px-4 pb-10 pt-12 sm:px-6 lg:grid-cols-2 lg:px-8 lg:pb-12 lg:pt-16">
           <div>
-            <p className="hero-store-tag">
-              BEHNAAZ STORE
-            </p>
+            <p className="hero-store-tag">BEHNAAZ STORE</p>
             <h1 className="motion-enter motion-delay-1 mt-5 text-[42px] font-bold leading-tight text-[#1c1410] [font-family:var(--font-cormorant)] sm:text-6xl lg:text-[72px]">
               Elegance in Every{" "}
               <span className="italic text-[#c8847a]">Thread</span>
