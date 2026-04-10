@@ -111,7 +111,13 @@ export default function Navbar() {
             display: "none",
           }}
         >
-          <svg width="24" height="24" fill="none" stroke="#1C1410" strokeWidth="2">
+          <svg
+            width="24"
+            height="24"
+            fill="none"
+            stroke="#1C1410"
+            strokeWidth="2"
+          >
             <line x1="3" y1="6" x2="21" y2="6" />
             <line x1="3" y1="12" x2="21" y2="12" />
             <line x1="3" y1="18" x2="21" y2="18" />
@@ -151,7 +157,13 @@ export default function Navbar() {
               padding: "8px",
             }}
           >
-            <svg width="28" height="28" fill="none" stroke="#FAF7F4" strokeWidth="2">
+            <svg
+              width="28"
+              height="28"
+              fill="none"
+              stroke="#FAF7F4"
+              strokeWidth="2"
+            >
               <line x1="4" y1="4" x2="24" y2="24" />
               <line x1="24" y1="4" x2="4" y2="24" />
             </svg>
@@ -186,7 +198,8 @@ export default function Navbar() {
                 fontFamily: "serif",
                 fontWeight: "300",
                 padding: "16px 0",
-                borderBottom: i < links.length - 1 ? "1px solid #2C2020" : "none",
+                borderBottom:
+                  i < links.length - 1 ? "1px solid #2C2020" : "none",
                 width: "80%",
                 textAlign: "center",
               }}

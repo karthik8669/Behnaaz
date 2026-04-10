@@ -12,15 +12,24 @@ function formatPrice(value) {
     return "Price on request";
   }
 
-  return new Intl.NumberFormat("en-IN", {
-    style: "currency",
-    currency: "INR",
-    maximumFractionDigits: 0,
-  }).format(numeric);
+  return `₹${Math.round(numeric).toLocaleString("en-IN")}`;
 }
 
 export default function ProductCard({ product, index = 0 }) {
   const { name, price, category, description, inStock } = product;
+  const numericPrice = Number(price);
+  const numericDiscount = Number(product.discount);
+  const discount =
+    Number.isFinite(numericDiscount) &&
+    numericDiscount >= 0 &&
+    numericDiscount < 100
+      ? numericDiscount
+      : 0;
+  const hasValidPrice = Number.isFinite(numericPrice) && numericPrice > 0;
+  const hasDiscount = hasValidPrice && discount > 0;
+  const originalPrice = hasDiscount
+    ? Math.round(numericPrice / (1 - discount / 100))
+    : null;
   const imageSource =
     product.image_url ||
     product.imageUrl ||
@@ -71,9 +80,11 @@ export default function ProductCard({ product, index = 0 }) {
           </div>
         )}
 
-        <span className="absolute left-[10px] top-[10px] rounded-[2px] bg-[#C8847A] px-[8px] py-[4px] text-[10px] font-bold tracking-[0.06em] text-white">
-          10% OFF
-        </span>
+        {hasDiscount && (
+          <span className="absolute left-[10px] top-[10px] rounded-[2px] bg-[#C8847A] px-[8px] py-[4px] text-[10px] font-bold tracking-[0.06em] text-white">
+            {discount}% OFF
+          </span>
+        )}
 
         <span className="absolute bottom-3 left-3 rounded-full border border-[#d7bd95] bg-[#fff2de] px-3 py-1 text-xs font-semibold text-[#8f6a3a]">
           {category}
@@ -89,9 +100,65 @@ export default function ProductCard({ product, index = 0 }) {
       <div className="space-y-3 p-4 sm:p-5">
         <h3 className="text-lg font-semibold text-[#6f3f50]">{name}</h3>
 
-        <p className="text-base font-bold text-[#8f6a3a]">
-          {formatPrice(price)}
-        </p>
+        {hasValidPrice ? (
+          <div
+            style={{
+              display: "flex",
+              alignItems: "center",
+              gap: "8px",
+              flexWrap: "wrap",
+            }}
+          >
+            {hasDiscount ? (
+              <>
+                <span
+                  style={{
+                    textDecoration: "line-through",
+                    color: "#8C7670",
+                    fontSize: "13px",
+                  }}
+                >
+                  ₹{originalPrice}
+                </span>
+                <span
+                  style={{
+                    color: "#B8965A",
+                    fontSize: "16px",
+                    fontWeight: "600",
+                  }}
+                >
+                  ₹{Math.round(numericPrice)}
+                </span>
+                <span
+                  style={{
+                    background: "#C8847A",
+                    color: "#fff",
+                    fontSize: "10px",
+                    padding: "2px 6px",
+                    borderRadius: "2px",
+                    fontWeight: "600",
+                  }}
+                >
+                  {discount}% OFF
+                </span>
+              </>
+            ) : (
+              <span
+                style={{
+                  color: "#B8965A",
+                  fontSize: "16px",
+                  fontWeight: "600",
+                }}
+              >
+                ₹{Math.round(numericPrice)}
+              </span>
+            )}
+          </div>
+        ) : (
+          <p className="text-base font-bold text-[#8f6a3a]">
+            {formatPrice(price)}
+          </p>
+        )}
 
         <p className="min-h-12 text-sm leading-relaxed text-[#6e5a64]">
           {description}

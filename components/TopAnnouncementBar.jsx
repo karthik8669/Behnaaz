@@ -1,63 +1,55 @@
-"use client";
-
-import { useEffect, useState } from "react";
-
-const DISMISS_KEY = "behnaaz-top-offer-dismissed-v1";
-const WHATSAPP_LINK =
-  "https://wa.me/918619279790?text=Hi! I visited Behnaaz website and I am interested in your collection. Can you help me?";
-const OFFER_TEXT =
-  "✦ SPECIAL OFFER — Flat 10% OFF on all products Use code: BEHNAAZ10 ✦ Shop now on WhatsApp";
-
 export default function TopAnnouncementBar() {
-  const [isVisible, setIsVisible] = useState(true);
-
-  useEffect(() => {
-    try {
-      const dismissed = window.localStorage.getItem(DISMISS_KEY);
-      if (dismissed === "1") {
-        setIsVisible(false);
-      }
-    } catch {
-      setIsVisible(true);
-    }
-  }, []);
-
-  const handleDismiss = () => {
-    setIsVisible(false);
-
-    try {
-      window.localStorage.setItem(DISMISS_KEY, "1");
-    } catch {
-      // Ignore localStorage access errors and only dismiss for current render.
-    }
-  };
-
-  if (!isVisible) {
-    return null;
-  }
-
   return (
-    <div className="announcement-bar" role="region" aria-label="Special offer">
-      <div className="announcement-marquee-wrap">
-        <a
-          href={WHATSAPP_LINK}
-          target="_blank"
-          rel="noopener noreferrer"
-          className="announcement-item announcement-item-single"
-          aria-label="Shop now on WhatsApp"
-        >
-          {OFFER_TEXT}
-        </a>
-      </div>
-
-      <button
-        type="button"
-        onClick={handleDismiss}
-        className="announcement-dismiss"
-        aria-label="Close special offer banner"
+    <div
+      style={{
+        background: "#1C1410",
+        padding: "10px 0",
+        overflow: "hidden",
+        whiteSpace: "nowrap",
+        width: "100%",
+      }}
+    >
+      <div
+        style={{
+          display: "inline-block",
+          animation: "marquee 25s linear infinite",
+        }}
       >
-        X
-      </button>
+        {[1, 2, 3].map((i) => (
+          <span key={i} style={{ marginRight: "0" }}>
+            <span
+              style={{
+                fontSize: "11px",
+                letterSpacing: "2px",
+                textTransform: "uppercase",
+                color: "#F5EAE8",
+              }}
+            >
+              ✦ SPECIAL OFFER — UPTO 10% OFF ON ALL PRODUCTS
+            </span>
+            <span style={{ color: "#C8847A", margin: "0 16px" }}>
+              USE CODE: BEHNAAZ10
+            </span>
+            <span
+              style={{
+                fontSize: "11px",
+                letterSpacing: "2px",
+                textTransform: "uppercase",
+                color: "#F5EAE8",
+              }}
+            >
+              ✦ SHOP NOW ON WHATSAPP
+            </span>
+            <span style={{ color: "#B8965A", margin: "0 32px" }}>❋</span>
+          </span>
+        ))}
+      </div>
+      <style>{`
+        @keyframes marquee {
+          0%   { transform: translateX(0) }
+          100% { transform: translateX(-33.33%) }
+        }
+      `}</style>
     </div>
   );
 }

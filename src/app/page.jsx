@@ -141,6 +141,7 @@ function mapProduct(doc) {
     id: doc.id,
     name: typeof rawName === "string" ? rawName.trim() : "",
     price: data.price ?? data.mrp,
+    discount: data.discount ?? 0,
     category:
       typeof rawCategory === "string" && rawCategory.trim()
         ? rawCategory.trim()
@@ -164,11 +165,7 @@ function formatPrice(value) {
     return "Price on request";
   }
 
-  return new Intl.NumberFormat("en-IN", {
-    style: "currency",
-    currency: "INR",
-    maximumFractionDigits: 0,
-  }).format(numeric);
+  return `₹${Math.round(numeric).toLocaleString("en-IN")}`;
 }
 
 export default function Home() {
@@ -335,6 +332,20 @@ export default function Home() {
               const layout = HERO_CARD_LAYOUTS[index];
               const gradient =
                 HERO_CARD_GRADIENTS[index % HERO_CARD_GRADIENTS.length];
+              const numericPrice = Number(product.price);
+              const numericDiscount = Number(product.discount);
+              const discount =
+                Number.isFinite(numericDiscount) &&
+                numericDiscount >= 0 &&
+                numericDiscount < 100
+                  ? numericDiscount
+                  : 0;
+              const hasValidPrice =
+                Number.isFinite(numericPrice) && numericPrice > 0;
+              const hasDiscount = hasValidPrice && discount > 0;
+              const originalPrice = hasDiscount
+                ? Math.round(numericPrice / (1 - discount / 100))
+                : 0;
 
               return (
                 <div
@@ -358,9 +369,67 @@ export default function Home() {
                     <h3 className="mt-1 line-clamp-2 text-xl text-[#1c1410] [font-family:var(--font-cormorant)]">
                       {product.name}
                     </h3>
-                    <p className="mt-1 text-sm font-semibold text-[#b8965a]">
-                      {formatPrice(product.price)}
-                    </p>
+                    {hasValidPrice ? (
+                      <div
+                        style={{
+                          display: "flex",
+                          alignItems: "center",
+                          gap: "6px",
+                          flexWrap: "wrap",
+                          marginTop: "6px",
+                        }}
+                      >
+                        {hasDiscount ? (
+                          <>
+                            <span
+                              style={{
+                                textDecoration: "line-through",
+                                color: "#8C7670",
+                                fontSize: "11px",
+                              }}
+                            >
+                              ₹{originalPrice}
+                            </span>
+                            <span
+                              style={{
+                                color: "#B8965A",
+                                fontSize: "15px",
+                                fontWeight: 600,
+                              }}
+                            >
+                              ₹{Math.round(numericPrice)}
+                            </span>
+                            <span
+                              style={{
+                                background: "#C8847A",
+                                color: "#fff",
+                                fontSize: "9px",
+                                padding: "2px 6px",
+                                borderRadius: "2px",
+                                fontWeight: 600,
+                                letterSpacing: "0.5px",
+                              }}
+                            >
+                              {discount}% OFF
+                            </span>
+                          </>
+                        ) : (
+                          <span
+                            style={{
+                              color: "#B8965A",
+                              fontSize: "15px",
+                              fontWeight: 600,
+                            }}
+                          >
+                            ₹{Math.round(numericPrice)}
+                          </span>
+                        )}
+                      </div>
+                    ) : (
+                      <p className="mt-1 text-sm font-semibold text-[#b8965a]">
+                        {formatPrice(product.price)}
+                      </p>
+                    )}
                   </article>
                 </div>
               );

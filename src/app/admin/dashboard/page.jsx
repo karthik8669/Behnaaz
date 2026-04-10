@@ -49,6 +49,7 @@ const CATS = [
 const EMPTY_EDIT_FORM = {
   name: "",
   price: "",
+  discount: 10,
   category: CATS[0],
   description: "",
   sizes: [],
@@ -66,6 +67,7 @@ export default function Dashboard() {
   const [form, setForm] = useState({
     name: "",
     price: "",
+    discount: 10,
     category: CATS[0],
     description: "",
     sizes: [],
@@ -179,6 +181,12 @@ export default function Dashboard() {
         product.price === undefined || product.price === null
           ? ""
           : String(product.price),
+      discount:
+        Number.isFinite(Number(product.discount)) &&
+        Number(product.discount) >= 0 &&
+        Number(product.discount) < 100
+          ? Number(product.discount)
+          : 10,
       category:
         typeof product.category === "string" && CATS.includes(product.category)
           ? product.category
@@ -215,6 +223,7 @@ export default function Dashboard() {
       await addDoc(collection(db, "products"), {
         ...form,
         price: Number(form.price),
+        discount: Number(form.discount),
         image_url: url,
         createdAt: serverTimestamp(),
       });
@@ -223,6 +232,7 @@ export default function Dashboard() {
       setForm({
         name: "",
         price: "",
+        discount: 10,
         category: CATS[0],
         description: "",
         sizes: [],
@@ -259,6 +269,7 @@ export default function Dashboard() {
       await updateDoc(doc(db, "products", productId), {
         name: editForm.name,
         price: Number(editForm.price),
+        discount: Number(editForm.discount),
         category: editForm.category,
         description: editForm.description,
         sizes: editForm.sizes,
@@ -302,6 +313,36 @@ export default function Dashboard() {
       setProductsError("Unable to update products. Check connection.");
     }
   }
+
+  const numericFormPrice = Number(form.price);
+  const showFormPricePreview =
+    Number.isFinite(numericFormPrice) && numericFormPrice > 0;
+  const numericFormDiscount = Number(form.discount);
+  const formDiscount =
+    Number.isFinite(numericFormDiscount) &&
+    numericFormDiscount >= 0 &&
+    numericFormDiscount < 100
+      ? numericFormDiscount
+      : 0;
+  const formOriginalPrice =
+    showFormPricePreview && formDiscount > 0
+      ? Math.round(numericFormPrice / (1 - formDiscount / 100))
+      : 0;
+
+  const numericEditPrice = Number(editForm.price);
+  const showEditPricePreview =
+    Number.isFinite(numericEditPrice) && numericEditPrice > 0;
+  const numericEditDiscount = Number(editForm.discount);
+  const editDiscount =
+    Number.isFinite(numericEditDiscount) &&
+    numericEditDiscount >= 0 &&
+    numericEditDiscount < 100
+      ? numericEditDiscount
+      : 0;
+  const editOriginalPrice =
+    showEditPricePreview && editDiscount > 0
+      ? Math.round(numericEditPrice / (1 - editDiscount / 100))
+      : 0;
 
   return (
     <div
@@ -442,6 +483,99 @@ export default function Dashboard() {
               }}
             />
           ))}
+
+          <div style={{ marginBottom: "12px" }}>
+            <label
+              style={{
+                fontSize: "11px",
+                letterSpacing: "1.5px",
+                textTransform: "uppercase",
+                color: "#8C7670",
+                display: "block",
+                marginBottom: "6px",
+              }}
+            >
+              Discount % (0 = no discount)
+            </label>
+            <div style={{ display: "flex", gap: "8px", flexWrap: "wrap" }}>
+              {[0, 5, 10, 15, 20, 25, 30].map((d) => (
+                <button
+                  key={d}
+                  type="button"
+                  onClick={() => setForm((f) => ({ ...f, discount: d }))}
+                  style={{
+                    padding: "8px 16px",
+                    fontSize: "13px",
+                    border: "1px solid #EDE8E4",
+                    borderRadius: "4px",
+                    cursor: "pointer",
+                    background: form.discount === d ? "#C8847A" : "#fff",
+                    color: form.discount === d ? "#fff" : "#1C1410",
+                    fontWeight: form.discount === d ? "600" : "400",
+                  }}
+                >
+                  {d === 0 ? "No Discount" : `${d}%`}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {showFormPricePreview && (
+            <div
+              style={{
+                background: "#FAF7F4",
+                border: "1px solid #EDE8E4",
+                borderRadius: "4px",
+                padding: "12px",
+                marginBottom: "16px",
+                fontSize: "13px",
+              }}
+            >
+              {formDiscount > 0 ? (
+                <>
+                  <p style={{ color: "#8C7670", marginBottom: "4px" }}>
+                    Customer will see:
+                  </p>
+                  <p>
+                    <span
+                      style={{
+                        textDecoration: "line-through",
+                        color: "#8C7670",
+                        marginRight: "8px",
+                      }}
+                    >
+                      ₹{formOriginalPrice}
+                    </span>
+                    <span
+                      style={{
+                        color: "#B8965A",
+                        fontWeight: "600",
+                        fontSize: "16px",
+                        marginRight: "8px",
+                      }}
+                    >
+                      ₹{Math.round(numericFormPrice)}
+                    </span>
+                    <span
+                      style={{
+                        background: "#C8847A",
+                        color: "#fff",
+                        fontSize: "10px",
+                        padding: "2px 6px",
+                        borderRadius: "2px",
+                      }}
+                    >
+                      {formDiscount}% OFF
+                    </span>
+                  </p>
+                </>
+              ) : (
+                <p style={{ color: "#B8965A", fontWeight: "600" }}>
+                  ₹{Math.round(numericFormPrice)} (No discount)
+                </p>
+              )}
+            </div>
+          )}
 
           <select
             id="category"
@@ -901,6 +1035,112 @@ export default function Dashboard() {
                         }}
                       />
                     </div>
+
+                    <div style={{ marginBottom: "12px" }}>
+                      <label
+                        style={{
+                          fontSize: "11px",
+                          letterSpacing: "1.5px",
+                          textTransform: "uppercase",
+                          color: "#8C7670",
+                          display: "block",
+                          marginBottom: "6px",
+                        }}
+                      >
+                        Discount % (0 = no discount)
+                      </label>
+                      <div
+                        style={{
+                          display: "flex",
+                          gap: "8px",
+                          flexWrap: "wrap",
+                        }}
+                      >
+                        {[0, 5, 10, 15, 20, 25, 30].map((d) => (
+                          <button
+                            key={d}
+                            type="button"
+                            onClick={() =>
+                              setEditForm((f) => ({ ...f, discount: d }))
+                            }
+                            style={{
+                              padding: "8px 16px",
+                              fontSize: "13px",
+                              border: "1px solid #EDE8E4",
+                              borderRadius: "4px",
+                              cursor: "pointer",
+                              background:
+                                editForm.discount === d ? "#C8847A" : "#fff",
+                              color:
+                                editForm.discount === d ? "#fff" : "#1C1410",
+                              fontWeight:
+                                editForm.discount === d ? "600" : "400",
+                            }}
+                          >
+                            {d === 0 ? "No Discount" : `${d}%`}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+
+                    {showEditPricePreview && (
+                      <div
+                        style={{
+                          background: "#FAF7F4",
+                          border: "1px solid #EDE8E4",
+                          borderRadius: "4px",
+                          padding: "12px",
+                          marginBottom: "16px",
+                          fontSize: "13px",
+                        }}
+                      >
+                        {editDiscount > 0 ? (
+                          <>
+                            <p
+                              style={{ color: "#8C7670", marginBottom: "4px" }}
+                            >
+                              Customer will see:
+                            </p>
+                            <p>
+                              <span
+                                style={{
+                                  textDecoration: "line-through",
+                                  color: "#8C7670",
+                                  marginRight: "8px",
+                                }}
+                              >
+                                ₹{editOriginalPrice}
+                              </span>
+                              <span
+                                style={{
+                                  color: "#B8965A",
+                                  fontWeight: "600",
+                                  fontSize: "16px",
+                                  marginRight: "8px",
+                                }}
+                              >
+                                ₹{Math.round(numericEditPrice)}
+                              </span>
+                              <span
+                                style={{
+                                  background: "#C8847A",
+                                  color: "#fff",
+                                  fontSize: "10px",
+                                  padding: "2px 6px",
+                                  borderRadius: "2px",
+                                }}
+                              >
+                                {editDiscount}% OFF
+                              </span>
+                            </p>
+                          </>
+                        ) : (
+                          <p style={{ color: "#B8965A", fontWeight: "600" }}>
+                            ₹{Math.round(numericEditPrice)} (No discount)
+                          </p>
+                        )}
+                      </div>
+                    )}
 
                     <select
                       value={editForm.category}

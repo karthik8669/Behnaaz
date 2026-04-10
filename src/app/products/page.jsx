@@ -53,6 +53,7 @@ function mapProduct(doc) {
     id: doc.id,
     name: typeof rawName === "string" ? rawName.trim() : "",
     price: data.price ?? data.mrp ?? 0,
+    discount: data.discount ?? 0,
     category:
       typeof rawCategory === "string" && rawCategory.trim()
         ? rawCategory.trim()
