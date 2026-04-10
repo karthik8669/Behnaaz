@@ -414,50 +414,159 @@ export default function Dashboard() {
             Add New Product
           </h2>
 
-          <label
-            className="admin-photo-upload"
-            style={{
-              display: "block",
-              border: "2px dashed #EDE8E4",
-              borderRadius: "8px",
-              padding: "20px",
-              textAlign: "center",
-              cursor: "pointer",
-              marginBottom: "16px",
-            }}
-          >
-            <input
-              type="file"
-              accept="image/*"
-              capture="environment"
-              onChange={handlePhoto}
-              style={{ display: "none" }}
-              id="photo"
-              name="photo"
-              autoComplete="off"
-            />
+          <div style={{ marginBottom: "16px" }}>
+            <p
+              style={{
+                fontSize: "11px",
+                letterSpacing: "1.5px",
+                textTransform: "uppercase",
+                color: "#8C7670",
+                marginBottom: "8px",
+              }}
+            >
+              Product Photo
+            </p>
 
-            {preview ? (
-              <Image
-                src={preview}
-                alt="New product preview"
-                width={1200}
-                height={800}
-                unoptimized
-                style={{
-                  width: "100%",
-                  height: "200px",
-                  objectFit: "cover",
-                  borderRadius: "4px",
-                }}
-              />
-            ) : (
-              <div style={{ color: "#8C7670", fontSize: "13px" }}>
-                <div style={{ fontSize: "32px", marginBottom: "8px" }}>📷</div>
-                Tap to add photo
+            {preview && (
+              <div style={{ marginBottom: "12px" }}>
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img
+                  src={preview}
+                  alt="Preview"
+                  style={{
+                    width: "100%",
+                    maxHeight: "200px",
+                    objectFit: "cover",
+                    borderRadius: "8px",
+                    border: "1px solid #EDE8E4",
+                  }}
+                />
               </div>
             )}
-          </label>
+
+            <div
+              style={{
+                display: "flex",
+                gap: "8px",
+                flexWrap: "wrap",
+              }}
+            >
+              <label
+                style={{
+                  flex: 1,
+                  minWidth: "100px",
+                  background: "#FAF7F4",
+                  border: "1px solid #EDE8E4",
+                  borderRadius: "8px",
+                  padding: "14px 8px",
+                  textAlign: "center",
+                  cursor: "pointer",
+                  display: "flex",
+                  flexDirection: "column",
+                  alignItems: "center",
+                  gap: "6px",
+                }}
+              >
+                <input
+                  type="file"
+                  accept="image/*"
+                  onChange={handlePhoto}
+                  style={{ display: "none" }}
+                  id="gallery-upload"
+                  name="gallery-upload"
+                  autoComplete="off"
+                />
+                <span style={{ fontSize: "24px" }}>🖼️</span>
+                <span
+                  style={{
+                    fontSize: "11px",
+                    letterSpacing: "1px",
+                    textTransform: "uppercase",
+                    color: "#5C4A42",
+                  }}
+                >
+                  Gallery
+                </span>
+              </label>
+
+              <label
+                style={{
+                  flex: 1,
+                  minWidth: "100px",
+                  background: "#FAF7F4",
+                  border: "1px solid #EDE8E4",
+                  borderRadius: "8px",
+                  padding: "14px 8px",
+                  textAlign: "center",
+                  cursor: "pointer",
+                  display: "flex",
+                  flexDirection: "column",
+                  alignItems: "center",
+                  gap: "6px",
+                }}
+              >
+                <input
+                  type="file"
+                  accept="image/*"
+                  capture="environment"
+                  onChange={handlePhoto}
+                  style={{ display: "none" }}
+                  id="camera-upload"
+                  name="camera-upload"
+                  autoComplete="off"
+                />
+                <span style={{ fontSize: "24px" }}>📷</span>
+                <span
+                  style={{
+                    fontSize: "11px",
+                    letterSpacing: "1px",
+                    textTransform: "uppercase",
+                    color: "#5C4A42",
+                  }}
+                >
+                  Camera
+                </span>
+              </label>
+
+              <label
+                style={{
+                  flex: 1,
+                  minWidth: "100px",
+                  background: "#FAF7F4",
+                  border: "1px solid #EDE8E4",
+                  borderRadius: "8px",
+                  padding: "14px 8px",
+                  textAlign: "center",
+                  cursor: "pointer",
+                  display: "flex",
+                  flexDirection: "column",
+                  alignItems: "center",
+                  gap: "6px",
+                }}
+              >
+                <input
+                  type="file"
+                  accept="image/*,.jpg,.jpeg,.png,.webp"
+                  onChange={handlePhoto}
+                  style={{ display: "none" }}
+                  id="files-upload"
+                  name="files-upload"
+                  autoComplete="off"
+                />
+                <span style={{ fontSize: "24px" }}>📁</span>
+                <span
+                  style={{
+                    fontSize: "11px",
+                    letterSpacing: "1px",
+                    textTransform: "uppercase",
+                    color: "#5C4A42",
+                  }}
+                >
+                  Files
+                </span>
+              </label>
+            </div>
+          </div>
 
           {["name", "price"].map((field) => (
             <input
@@ -1263,8 +1372,8 @@ export default function Dashboard() {
                     <div style={{ marginBottom: "12px" }}>
                       <p
                         style={{
-                          fontSize: "12px",
-                          letterSpacing: "1px",
+                          fontSize: "11px",
+                          letterSpacing: "1.5px",
                           textTransform: "uppercase",
                           color: "#8C7670",
                           marginBottom: "8px",
@@ -1274,48 +1383,154 @@ export default function Dashboard() {
                       </p>
 
                       {editPhotoPreview || editForm.image_url ? (
-                        <Image
-                          src={editPhotoPreview || editForm.image_url}
-                          alt={editForm.name || "Product image preview"}
-                          width={440}
-                          height={320}
-                          unoptimized={Boolean(editPhotoPreview)}
+                        <div style={{ marginBottom: "12px" }}>
+                          {/* eslint-disable-next-line @next/next/no-img-element */}
+                          <img
+                            src={editPhotoPreview || editForm.image_url}
+                            alt={editForm.name || "Product image preview"}
+                            style={{
+                              width: "100%",
+                              maxHeight: "200px",
+                              objectFit: "cover",
+                              borderRadius: "8px",
+                              border: "1px solid #EDE8E4",
+                            }}
+                          />
+                        </div>
+                      ) : (
+                        <p
                           style={{
-                            width: "100%",
-                            maxWidth: "220px",
-                            height: "160px",
-                            objectFit: "cover",
-                            borderRadius: "6px",
-                            border: "1px solid #EDE8E4",
+                            fontSize: "12px",
+                            color: "#8C7670",
                             marginBottom: "8px",
                           }}
-                        />
-                      ) : (
-                        <p style={{ fontSize: "12px", color: "#8C7670" }}>
+                        >
                           No current photo
                         </p>
                       )}
 
-                      <label
+                      <div
                         style={{
-                          display: "inline-block",
-                          padding: "8px 12px",
-                          border: "1px dashed #D8CBC3",
-                          borderRadius: "4px",
-                          fontSize: "12px",
-                          cursor: "pointer",
-                          background: "#fff",
+                          display: "flex",
+                          gap: "8px",
+                          flexWrap: "wrap",
                         }}
                       >
-                        Upload New Photo
-                        <input
-                          type="file"
-                          accept="image/*"
-                          capture="environment"
-                          onChange={handleEditPhoto}
-                          style={{ display: "none" }}
-                        />
-                      </label>
+                        <label
+                          style={{
+                            flex: 1,
+                            minWidth: "100px",
+                            background: "#FAF7F4",
+                            border: "1px solid #EDE8E4",
+                            borderRadius: "8px",
+                            padding: "14px 8px",
+                            textAlign: "center",
+                            cursor: "pointer",
+                            display: "flex",
+                            flexDirection: "column",
+                            alignItems: "center",
+                            gap: "6px",
+                          }}
+                        >
+                          <input
+                            type="file"
+                            accept="image/*"
+                            onChange={handleEditPhoto}
+                            style={{ display: "none" }}
+                            id="gallery-upload-edit"
+                            name="gallery-upload-edit"
+                            autoComplete="off"
+                          />
+                          <span style={{ fontSize: "24px" }}>🖼️</span>
+                          <span
+                            style={{
+                              fontSize: "11px",
+                              letterSpacing: "1px",
+                              textTransform: "uppercase",
+                              color: "#5C4A42",
+                            }}
+                          >
+                            Gallery
+                          </span>
+                        </label>
+
+                        <label
+                          style={{
+                            flex: 1,
+                            minWidth: "100px",
+                            background: "#FAF7F4",
+                            border: "1px solid #EDE8E4",
+                            borderRadius: "8px",
+                            padding: "14px 8px",
+                            textAlign: "center",
+                            cursor: "pointer",
+                            display: "flex",
+                            flexDirection: "column",
+                            alignItems: "center",
+                            gap: "6px",
+                          }}
+                        >
+                          <input
+                            type="file"
+                            accept="image/*"
+                            capture="environment"
+                            onChange={handleEditPhoto}
+                            style={{ display: "none" }}
+                            id="camera-upload-edit"
+                            name="camera-upload-edit"
+                            autoComplete="off"
+                          />
+                          <span style={{ fontSize: "24px" }}>📷</span>
+                          <span
+                            style={{
+                              fontSize: "11px",
+                              letterSpacing: "1px",
+                              textTransform: "uppercase",
+                              color: "#5C4A42",
+                            }}
+                          >
+                            Camera
+                          </span>
+                        </label>
+
+                        <label
+                          style={{
+                            flex: 1,
+                            minWidth: "100px",
+                            background: "#FAF7F4",
+                            border: "1px solid #EDE8E4",
+                            borderRadius: "8px",
+                            padding: "14px 8px",
+                            textAlign: "center",
+                            cursor: "pointer",
+                            display: "flex",
+                            flexDirection: "column",
+                            alignItems: "center",
+                            gap: "6px",
+                          }}
+                        >
+                          <input
+                            type="file"
+                            accept="image/*,.jpg,.jpeg,.png,.webp"
+                            onChange={handleEditPhoto}
+                            style={{ display: "none" }}
+                            id="files-upload-edit"
+                            name="files-upload-edit"
+                            autoComplete="off"
+                          />
+                          <span style={{ fontSize: "24px" }}>📁</span>
+                          <span
+                            style={{
+                              fontSize: "11px",
+                              letterSpacing: "1px",
+                              textTransform: "uppercase",
+                              color: "#5C4A42",
+                            }}
+                          >
+                            Files
+                          </span>
+                        </label>
+                      </div>
                     </div>
 
                     {editSaving && editPhoto && (
