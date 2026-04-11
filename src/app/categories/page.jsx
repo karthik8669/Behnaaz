@@ -45,13 +45,7 @@ const CATEGORIES = [
     emoji: "🌸",
   },
   {
-    name: "Office Wear",
-    description: "Professional and elegant",
-    gradient: "linear-gradient(135deg,#E8F5FD,#CCE5F5)",
-    emoji: "💼",
-  },
-  {
-    name: "Casual Daily Wear",
+    name: "Casual Wear",
     description: "Easy breezy everyday looks",
     gradient: "linear-gradient(135deg,#F0FDE8,#E0F5CC)",
     emoji: "☀️",

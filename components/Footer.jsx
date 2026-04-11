@@ -16,8 +16,8 @@ const COLLECTION_LINKS = [
   "Easy Wear Sets",
   "Chic Co-ord Sets",
   "Festive / Wedding Wear",
-  "Office Wear",
-  "Casual Daily Wear",
+  "Casual Wear",
+  "Short Kurties",
   "Sale / Discounts",
   "Best Sellers",
 ].map((category) => ({

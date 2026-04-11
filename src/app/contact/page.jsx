@@ -168,8 +168,7 @@ export default function ContactPage() {
                 letterSpacing: "0.5px",
               }}
             >
-              16/1137 Meera Colony, Ayad,
-              Udaipur, Rajasthan 313001
+              16/1137 Meera Colony, Ayad, Udaipur, Rajasthan 313001
             </p>
           </div>
         </div>
