@@ -1,10 +1,8 @@
 "use client";
 
+import Link from "next/link";
 import { useEffect, useState } from "react";
-
-const WHATSAPP_LINK =
-  "https://wa.me/918619279790?text=Hi! I visited Behnaaz website and I am interested in your collection. Can you help me?";
-const INSTAGRAM_LINK = "https://www.instagram.com/the_behnaaz_store";
+import OrderModal from "./OrderModal";
 
 function formatPrice(value) {
   const numeric = Number(value);
@@ -37,6 +35,7 @@ export default function ProductCard({ product, index = 0 }) {
     product.photoUrl ||
     "";
   const [showFallback, setShowFallback] = useState(false);
+  const [showOrder, setShowOrder] = useState(false);
 
   useEffect(() => {
     setShowFallback(false);
@@ -98,7 +97,18 @@ export default function ProductCard({ product, index = 0 }) {
       </div>
 
       <div className="space-y-3 p-4 sm:p-5">
-        <h3 className="text-lg font-semibold text-[#6f3f50]">{name}</h3>
+        <h3 className="text-lg font-semibold text-[#6f3f50]">
+          {product.id ? (
+            <Link
+              href={`/products/${encodeURIComponent(product.id)}`}
+              className="transition hover:text-[#8f6a3a]"
+            >
+              {name}
+            </Link>
+          ) : (
+            name
+          )}
+        </h3>
 
         {hasValidPrice ? (
           <div
@@ -165,25 +175,39 @@ export default function ProductCard({ product, index = 0 }) {
         </p>
 
         <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
-          <a
-            href={WHATSAPP_LINK}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="motion-button inline-flex items-center justify-center rounded-lg bg-[#25d366] px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-[#1ebc59]"
+          <button
+            type="button"
+            onClick={() => setShowOrder(true)}
+            style={{
+              flex: 1,
+              background: "#C8847A",
+              color: "#fff",
+              border: "none",
+              padding: "10px 0",
+              fontSize: "11px",
+              letterSpacing: "1.5px",
+              textTransform: "uppercase",
+              cursor: "pointer",
+              borderRadius: "4px",
+              fontFamily: "sans-serif",
+              fontWeight: "600",
+            }}
           >
-            WhatsApp to Order
-          </a>
+            🛍️ Buy Now
+          </button>
 
           <a
-            href={INSTAGRAM_LINK}
-            target="_blank"
-            rel="noopener noreferrer"
+            href="tel:+918619279790"
             className="motion-button inline-flex items-center justify-center rounded-lg border border-[#d7bd95] bg-[#fff5e9] px-4 py-2.5 text-sm font-semibold text-[#8f6a3a] transition hover:bg-[#fdeed9]"
           >
-            View on Instagram
+            Call
           </a>
         </div>
       </div>
+
+      {showOrder && (
+        <OrderModal product={product} onClose={() => setShowOrder(false)} />
+      )}
     </article>
   );
 }

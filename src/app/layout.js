@@ -6,6 +6,14 @@ import TopAnnouncementBar from "../../components/TopAnnouncementBar";
 
 const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || "https://behnaaz.in";
 
+function getMetadataBase(siteUrlValue) {
+  try {
+    return new URL(siteUrlValue);
+  } catch {
+    return new URL("https://behnaaz.in");
+  }
+}
+
 const cormorant = Cormorant_Garamond({
   subsets: ["latin"],
   variable: "--font-cormorant",
@@ -20,7 +28,7 @@ const jost = Jost({
 });
 
 export const metadata = {
-  metadataBase: new URL(siteUrl),
+  metadataBase: getMetadataBase(siteUrl),
   title: "Behnaaz - Ladies Kurti Shop",
   description:
     "Explore elegant kurtis and kurti sets at Behnaaz. Shop Easy Wear Sets, Co-ord Sets, Festive Wear and more.",

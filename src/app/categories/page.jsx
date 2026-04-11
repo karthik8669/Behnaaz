@@ -57,6 +57,12 @@ const CATEGORIES = [
     emoji: "☀️",
   },
   {
+    name: "Short Kurties",
+    description: "Fun and trendy short styles",
+    gradient: "linear-gradient(135deg,#FDE8F5,#F5CCE8)",
+    emoji: "👘",
+  },
+  {
     name: "Sale / Discounts",
     description: "Best deals on top styles",
     gradient: "linear-gradient(135deg,#FDE8E8,#F5CCCC)",

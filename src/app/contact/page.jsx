@@ -121,6 +121,57 @@ export default function ContactPage() {
               Open Instagram
             </a>
           </div>
+
+          <div style={{ marginTop: "16px" }}>
+            <a
+              href="https://maps.app.goo.gl/UZPYjNuiXYCjGotw8"
+              target="_blank"
+              rel="noopener noreferrer"
+              style={{
+                display: "inline-flex",
+                alignItems: "center",
+                gap: "8px",
+                background: "#C8847A",
+                color: "#fff",
+                padding: "10px 20px",
+                borderRadius: "4px",
+                fontSize: "11px",
+                letterSpacing: "2px",
+                textTransform: "uppercase",
+                textDecoration: "none",
+                marginBottom: "16px",
+              }}
+            >
+              📍 Open Exact Location →
+            </a>
+
+            <iframe
+              src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3628.5!2d73.71526!3d24.58761!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x0%3A0x0!2zMjTCsDM1JzE1LjQiTiA3M8KwNDMnMDIuOCJF!5e0!3m2!1sen!2sin!4v1699000000000!5m2!1sen!2sin"
+              width="100%"
+              height="320"
+              style={{
+                border: "none",
+                borderRadius: "12px",
+                display: "block",
+              }}
+              allowFullScreen={true}
+              loading="lazy"
+              referrerPolicy="no-referrer-when-downgrade"
+            />
+
+            <p
+              style={{
+                fontSize: "11px",
+                color: "#8C7670",
+                marginTop: "8px",
+                textAlign: "center",
+                letterSpacing: "0.5px",
+              }}
+            >
+              16/1137 Meera Colony, Ayad,
+              Udaipur, Rajasthan 313001
+            </p>
+          </div>
         </div>
       </div>
     </div>

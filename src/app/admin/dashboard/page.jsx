@@ -42,6 +42,7 @@ const CATS = [
   "Festive / Wedding Wear",
   "Office Wear",
   "Casual Daily Wear",
+  "Short Kurties",
   "Sale / Discounts",
   "Best Sellers",
 ];
